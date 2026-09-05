@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "com.example.tifworldgen.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "compat.SereneSeasonsInjectionMixin"
+  ],
+  "minVersion": "0.8.5",
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

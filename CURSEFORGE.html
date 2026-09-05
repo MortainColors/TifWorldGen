@@ -1,0 +1,124 @@
+<div align="center">
+<h1>🌍 TifWorldGen</h1>
+<p><strong>Build the real world in Minecraft &ndash; from your own GIS data.</strong></p>
+<img src="https://media.forgecdn.net/attachments/description/1681925/description_bf847bb2-220b-4d08-b8af-64cb5bc640c0.png" alt="TifWorldGen banner" width="800">
+<p><a href="https://www.curseforge.com/minecraft/mc-mods/SEM_CF_SLUG"><img src="https://img.shields.io/curseforge/dt/1681925?label=Downloads&amp;logo=curseforge" alt="Downloads"></a> <a href="https://www.curseforge.com/minecraft/mc-mods/SEM_CF_SLUG"><img src="https://img.shields.io/badge/MC-1.20.1-blue" alt="Minecraft 1.20.1"></a> <a href="https://www.curseforge.com/minecraft/mc-mods/SEM_CF_SLUG"><img src="https://img.shields.io/badge/License-All%20Rights%20Reserved-informational" alt="License"></a> <a href="https://ko-fi.com/mortaincolors"><img src="https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-F16061?logo=ko-fi" alt="Ko-fi"></a> <a href="https://www.patreon.com/u81778276"><img src="https://img.shields.io/badge/Patreon-Become%20a%20patron-FF424D?logo=patreon" alt="Patreon"></a></p>
+</div>
+<hr>
+<p>TifWorldGen replaces vanilla world generation with <strong>your own GIS data</strong>. Feed it a heightmap of your country, region or city and it builds a 1:1 Minecraft world &ndash; hills, valleys, rivers, lakes and real forest coverage &ndash; powered by the industry-standard <strong>GDAL</strong> geospatial library.</p>
+<p>Built and tested on a full real-world dataset: parts of the <strong>Slovakia DMR</strong> terrain model (73,000 &times; 48,000 blocks, 14 GB GeoTIFF).</p>
+<p><img src="SEM_URL_OBRAZKA_1" alt="Real terrain with rivers" width="800"></p>
+<h2>✨ Features</h2>
+<ul>
+<li>🏔️ <strong>Real terrain from heightmaps</strong> &ndash; Float32 GeoTIFF, automatic min/max detection or manual height remapping (e.g. 1 m = 1 block)</li>
+<li>🌊 <strong>Rivers &amp; lakes from water masks</strong> &ndash; adaptive riverbed carving (shallow banks, deeper mid-river), organic riverbed blocks</li>
+<li>🌲 <strong>Real forests &amp; biomes</strong> &ndash; map forest classes to any biome per altitude band (broadleaf &rarr; forest, coniferous &rarr; old growth taiga, peaks &rarr; snowy slopes)</li>
+<li>🏰 <strong>Structure whitelist</strong> &ndash; allow villages &amp; structures only where your map says</li>
+<li>🕳️ <strong>Vanilla-style caves</strong> &ndash; cheese/spaghetti/noodle caves that follow your terrain, aquifers, lava lakes, Deep Dark / Lush / Dripstone underground biomes</li>
+<li>❄️ <strong>Seasonal snow line</strong> &ndash; Serene Seasons integration: rain below, snow above a moving altitude freeze line</li>
+<li>🔭 <strong>Distant Horizons LOD pregeneration</strong> &ndash; <code>/tifworldgen dhpregen</code> fills DH with terrain, rivers and trees without generating real chunks</li>
+<li>⚙️ <strong>In-game config GUI</strong> (press <strong>O</strong>) &ndash; map import with native file browser, biome rule editor with presets, slope &amp; water tuning</li>
+</ul>
+<p><img src="SEM_URL_OBRAZKA_2" alt="Biomes" width="800"></p>
+<h2>📦 Installation</h2>
+<p><strong>1.</strong> Install <strong>Forge 47.x</strong> for Minecraft <strong>1.20.1</strong> and drop both jars into <code>mods/</code>:<br><code>tifworldgen-&lt;version&gt;.jar</code> + <code>tifworldgen-lib-&lt;version&gt;.jar</code></p>
+<p><strong>2.</strong> Install dependencies:</p>
+<table>
+<tbody>
+<tr>
+<th>Mod</th>
+<th>Required</th>
+<th>Why</th>
+</tr>
+<tr>
+<td><a href="https://www.curseforge.com/minecraft/mc-mods/serene-seasons">Serene Seasons</a> (+ <a href="https://www.curseforge.com/minecraft/mc-mods/glitchcore">GlitchCore</a>)</td>
+<td>✅ Yes</td>
+<td>seasonal snow line integration</td>
+</tr>
+<tr>
+<td><a href="https://www.curseforge.com/minecraft/mc-mods/distant-horizons">Distant Horizons</a></td>
+<td>🔵 Optional</td>
+<td>LOD pregeneration</td>
+</tr>
+<tr>
+<td><a href="https://www.curseforge.com/minecraft/mc-mods/snow-real-magic">Snow! Real Magic</a></td>
+<td>🔵 Optional</td>
+<td>nicer snow stacking</td>
+</tr>
+</tbody>
+</table>
+<p><strong>3. GDAL native libraries</strong> (the geospatial engine &ndash; pick your platform):</p>
+<h3>🪟 Windows</h3>
+<ol>
+<li>Install the <a href="https://aka.ms/vs/17/release/vc_redist.x64.exe">Microsoft Visual C++ Redistributable 2015&ndash;2022 (x64)</a></li>
+<li>Download a GDAL x64 build from <a href="https://gisinternals.com/release.php">GIS Internals</a> (e.g. <code>release-1929-x64-gdal-3-12-1-mapserver-8-6-0</code>)</li>
+<li>Extract the whole release into <code>.minecraft/tifworldgen/native/Win/</code> (must contain <code>gdal.dll</code> + <code>gdalalljni.dll</code> + ~40 DLLs; subfolders are scanned; a README with instructions is generated there on first launch)</li>
+</ol>
+<h3>🐧 Linux</h3>
+<ol>
+<li>Install your distribution's GDAL package:
+<ul>
+<li>Arch: <code>sudo pacman -S gdal</code> <em>(bundled JNI bridge then works automatically)</em></li>
+<li>Debian/Ubuntu: <code>sudo apt install gdal-bin</code> <em>(+ <code>libgdal-java</code> if the version differs)</em></li>
+<li>Fedora: <code>sudo dnf install gdal</code> <em>(+ <code>gdal-java</code> if the version differs)</em></li>
+</ul>
+</li>
+<li>Nothing else &ndash; a README is generated in <code>.minecraft/tifworldgen/native/Linux/</code> explaining all options</li>
+</ol>
+<p><strong>4.</strong> Create a new world &rarr; world type <strong>&ldquo;Tif World Map&rdquo;</strong> &rarr; press <strong>O</strong> to import your maps</p>
+<h2>🗺️ Map formats</h2>
+<table>
+<tbody>
+<tr>
+<th>Map</th>
+<th>Format</th>
+<th>Notes</th>
+</tr>
+<tr>
+<td>Heightmap</td>
+<td>Float32 GeoTIFF</td>
+<td>1 px = 1 block ideal; min/max auto-detected</td>
+</tr>
+<tr>
+<td>Water mask</td>
+<td>Byte GeoTIFF</td>
+<td>white (&ge;128) = water</td>
+</tr>
+<tr>
+<td>Forest/biome map</td>
+<td>classes 0/1/2 or RGB</td>
+<td>auto-scaled to heightmap resolution; Bit or HEX rules</td>
+</tr>
+</tbody>
+</table>
+<h2>⌨️ Commands</h2>
+<table>
+<tbody>
+<tr>
+<th>Command</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>/tifworldgen dhpregen radius &lt;1&ndash;4000&gt;</code></td>
+<td>set LOD pregeneration radius</td>
+</tr>
+<tr>
+<td><code>/tifworldgen dhpregen genaboveylevel &lt;Y&gt;</code></td>
+<td>pregenerate only above a height</td>
+</tr>
+<tr>
+<td><code>/tifworldgen dhpregen prepare / start / stop</code></td>
+<td>run LOD pregeneration</td>
+</tr>
+<tr>
+<td><code>/tifworldgen sereneseason status</code></td>
+<td>current season &amp; freeze line</td>
+</tr>
+</tbody>
+</table>
+<h2>❤️ Credits &amp; Support</h2>
+<p>Built on <a href="https://gdal.org">GDAL</a> &middot; <a href="https://www.curseforge.com/minecraft/mc-mods/distant-horizons">Distant Horizons</a> LOD integration &middot; <a href="https://www.curseforge.com/minecraft/mc-mods/serene-seasons">Serene Seasons</a> compatibility &middot; <a href="https://www.curseforge.com/minecraft/mc-mods/snow-real-magic">Snow! Real Magic</a> &middot; terrain test data: Slovakia DMR.</p>
+<p>If you enjoy the mod, please consider supporting development as I am a single developer:</p>
+<p><a href="https://ko-fi.com/mortaincolors" target="_blank"><img height="36" src="https://storage.ko-fi.com/cdn/kofibutton_2s.png" border="0" alt="Buy Me a Coffee at ko-fi.com"></a> &nbsp; <a href="https://www.patreon.com/u81778276"><img src="https://img.shields.io/badge/Patreon-Become%20a%20patron-FF424D?logo=patreon" alt="Patreon"></a></p>
+<h2>📄 License</h2>
+<p>All Rights Reserved.</p>

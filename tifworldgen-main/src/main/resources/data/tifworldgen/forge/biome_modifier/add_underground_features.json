@@ -1,0 +1,10 @@
+{
+  "type": "forge:add_features",
+  "biomes": "#minecraft:is_overworld",
+  "features": [
+    "tifworldgen:dripstone_cluster",
+    "tifworldgen:amethyst_geode",
+    "tifworldgen:monster_room"
+  ],
+  "step": "underground_decoration"
+}

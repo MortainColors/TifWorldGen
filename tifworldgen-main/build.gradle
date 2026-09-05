@@ -1,0 +1,233 @@
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '6.0.+'
+    id 'org.spongepowered.mixin' version '0.7.+'
+}
+
+apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'org.spongepowered.mixin'
+
+// 🔥 JAR-IN-JAR: zapína zabudovanie závislostí (tifworldgen-lib) dovnútra hlavného jaru
+jarJar.enable()
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = mod_id
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
+
+minecraft {
+    mappings channel: mapping_channel, version: mapping_version
+    copyIdeResources = true
+    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+
+    runs {
+        configureEach {
+            workingDirectory project.rootProject.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        client {
+            property 'forge.enabledGameTestNamespaces', mod_id
+            property 'mixin.debug.strict', 'false'
+            property 'mixin.checks.active', 'false'
+        }
+
+        server {
+            workingDirectory project.rootProject.file("run")
+            property 'forge.enabledGameTestNamespaces', mod_id
+            args '--nogui'
+        }
+
+        gameTestServer {
+            property 'forge.enabledGameTestNamespaces', mod_id
+        }
+
+        data {
+            workingDirectory project.file('run-data')
+            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+        }
+    }
+}
+
+// Zabezpečí automatické generovanie refmapy a registráciu Mixinov pre náš vlastný systém
+mixin {
+    add sourceSets.main, "tifworldgen.refmap.json"
+    config "tifworldgen.mixins.json"
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+repositories {
+    flatDir {
+        dir '../tifworldgen-lib/libs'
+    }
+    maven {
+        url = "https://www.cursemaven.com"
+    }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+
+    // Hlavný mód vidí triedy z našej knižnice
+    implementation project(':tifworldgen-lib')
+
+    // 🔥 JAR-IN-JAR: lib sa pribalí dovnútra finálneho jaru (user stiahne jeden súbor)
+    // 'ranged' definuje platný Maven range (vyžaduje to validácia v ForgeGradle),
+    // 'pin' udáva presnú verziu pre metadáta.
+    // transitive=false: lib je self-contained (GDAL má vnútri), nechceme ťahať celé MC prostredie
+    jarJar(project(':tifworldgen-lib')) {
+        transitive = false
+        jarJar.ranged(it, "[${mod_version}]")
+        jarJar.pin(it, "${mod_version}")
+    }
+
+    // GDAL knižnica pre runtime
+    implementation name: 'gdal'
+
+    // 🔥 MÓDY A API KNIŽNICE ZO ZLOŽKY tifworldgen-lib/libs/
+    compileOnly fg.deobf(files("../tifworldgen-lib/libs/SereneSeasons-forge-1.20.1-9.1.0.2.jar"))
+    compileOnly fg.deobf(files("../tifworldgen-lib/libs/GlitchCore-forge-1.20.1-0.0.1.1.jar"))
+    compileOnly fg.deobf(files("../tifworldgen-lib/libs/DistantHorizons-2.4.5-b-1.20.1-fabric-forge.jar"))
+    compileOnly fg.deobf(files("../tifworldgen-lib/libs/DistantHorizonsApi-5.1.0.jar"))
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
+            forge_version: forge_version, forge_version_range: forge_version_range,
+            loader_version_range: loader_version_range,
+            mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
+            mod_authors: mod_authors, mod_description: mod_description,
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes([
+                'Specification-Title'     : mod_id,
+                'Specification-Vendor'    : mod_authors,
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Vendor'   : mod_authors,
+                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+                'MixinConfigs'            : 'tifworldgen.mixins.json'
+        ])
+    }
+    finalizedBy 'reobfJar'
+}
+
+// 🔥 JAR-IN-JAR: finálny jar musí niesť rovnaký manifest (MixinConfigs a pod.)
+// a musí byť aj reobfuskovaný (SRG mená) pre produkčné prostredie
+tasks.named('jarJar', Jar).configure {
+    manifest {
+        attributes([
+                'Specification-Title'     : mod_id,
+                'Specification-Vendor'    : mod_authors,
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Vendor'   : mod_authors,
+                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+                'MixinConfigs'            : 'tifworldgen.mixins.json'
+        ])
+    }
+    finalizedBy 'reobfJarJar'
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            artifact jar
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/mcmodsrepo"
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+java {
+    withSourcesJar()
+}
+
+tasks.withType(Jar).configureEach {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+// 🔥 AUTOMATICKÁ DETEKCIA A KOPÍROVANIE DO LAUNCHERU (vrátane Flatpak)
+// 🔥 AUTOMATICKÉ KOPÍROVANIE FINÁLNEHO MÓDU DO LAUNCHERU
+// 🔥 AUTOMATICKÉ KOPÍROVANIE FINÁLNEHO MÓDU DO .minecraft/mods
+tasks.register('copyToMods') {
+    group = 'build'
+    description = 'Skopíruje finálny reobfuskovaný JAR (so zabudovanou lib) priamo do priečinka mods.'
+
+    dependsOn 'reobfJarJar'
+
+    doLast {
+        // Získame presný názov a cestu k finálnemu súboru (jarJar výstup)
+        def jarTask = tasks.named('jarJar').get()
+        def jarFile = jarTask.archiveFile.get().asFile
+
+        def userHome = System.getProperty("user.home")
+        def os = System.getProperty("os.name").toLowerCase()
+        File modsDir
+
+        if (os.contains("win")) {
+            modsDir = file("${System.getenv('APPDATA')}/.minecraft/mods")
+        } else if (os.contains("mac")) {
+            modsDir = file("${userHome}/Library/Application Support/minecraft/mods")
+        } else {
+            modsDir = file("${userHome}/.minecraft/mods")
+        }
+
+        if (!modsDir.exists()) {
+            modsDir.mkdirs()
+        }
+
+        println "[WMAPGEN-MAIN] -> Čistím staré verzie v ${modsDir.absolutePath}..."
+        // Lib je teraz zabudovaná vnútri hlavného jaru (Jar-in-Jar),
+        // takže mažeme VŠETKY staré tifworldgen jary vrátane samostatnej lib:
+        fileTree(modsDir).matching {
+            include 'tifworldgen-*.jar'
+        }.each { it.delete() }
+
+        println "[WMAPGEN-MAIN] -> Kopírujem ${jarFile.name} do ${modsDir.absolutePath}..."
+        copy {
+            from jarFile
+            into modsDir
+        }
+        println "[WMAPGEN-MAIN] -> ÚSPECH: ${jarFile.name} bol úspešne prekopírovaný!"
+    }
+}
+
+tasks.named('build') {
+    finalizedBy 'copyToMods'
+}

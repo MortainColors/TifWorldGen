@@ -1,0 +1,21 @@
+{
+  "dimensions": {
+    "minecraft:overworld": {
+      "type": "tifworldgen:tifworldgen_overworld",
+      "generator": {
+        "type": "tifworldgen:tiff_generator",
+        "biome_source": {
+          "type": "minecraft:multi_noise",
+          "preset": "minecraft:overworld"
+        },
+        "settings": {
+          "tiff_path": "maps/heightmap.tif",
+          "water_tiff_path": "maps/watermap.tif",
+          "forest_tiff_path": "maps/forestmap.tif",
+          "min_y": -64,
+          "height": 2096
+        }
+      }
+    }
+  }
+}

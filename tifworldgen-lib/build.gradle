@@ -1,0 +1,119 @@
+plugins {
+    id 'java-library'
+    id 'net.minecraftforge.gradle' version '6.0.+'
+}
+
+group = 'com.tifworldgen'
+// Verzia jediného zdroja: gradle.properties (mod_version) – rovnaká pre lib aj hlavný mod
+version = mod_version
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+minecraft {
+    mappings channel: 'official', version: '1.20.1'
+}
+
+repositories {
+    mavenCentral()
+    flatDir {
+        dir 'libs'
+    }
+}
+
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.20.1-47.4.10'
+
+    // GDAL knižnica zo zložky libs
+    api name: 'gdal'
+
+    compileOnly name: 'DistantHorizons-2.4.5-b-1.20.1-fabric-forge'
+    compileOnly name: 'SereneSeasons-forge-1.20.1-9.1.0.2'
+    compileOnly files('libs/DistantHorizonsAPI-5.1.0.jar')
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+}
+
+// Expanzia ${mod_version} tokenu v mods.toml (rovnako ako v hlavnom mode)
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [mod_version: mod_version]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml']) {
+        expand replaceProperties
+    }
+}
+
+jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    // 1. Vloží výstup kompilácie + všetky resources (vrátane src/main/resources/native/*)
+    from sourceSets.main.output
+
+    // 2. Rozbalí libs/gdal.jar a vkladá jeho Java triedy priamo do knižnice (ak existuje)
+    if (file('libs/gdal.jar').exists()) {
+        from(zipTree(file('libs/gdal.jar'))) {
+            include '**/*.class'
+            exclude 'META-INF/**'
+            exclude 'module-info.class'
+        }
+    }
+
+    manifest {
+        attributes([
+                'Specification-Title': 'tifworldgenlib',
+                'Implementation-Title': project.name,
+                'Implementation-Version': project.version
+        ])
+    }
+}
+
+// 🔥 AUTOMATICKÉ KOPÍROVANIE VYBUILDOVANEJ KNIŽNICE DO .minecraft/mods
+tasks.register('copyToMods') {
+    group = 'build'
+    description = 'Skopíruje vybuildovaný JAR súbor priamo do priečinka mods.'
+
+    // Závisí od tasku 'jar', aby sa JAR najskôr vytvoril
+    dependsOn 'jar'
+
+    doLast {
+        // Získame presný názov vybuildovaného súboru
+        def jarTask = tasks.named('jar').get()
+        def jarFile = jarTask.archiveFile.get().asFile
+
+        def userHome = System.getProperty("user.home")
+        def os = System.getProperty("os.name").toLowerCase()
+        File modsDir
+
+        if (os.contains("win")) {
+            modsDir = file("${System.getenv('APPDATA')}/.minecraft/mods")
+        } else if (os.contains("mac")) {
+            modsDir = file("${userHome}/Library/Application Support/minecraft/mods")
+        } else {
+            // Linux: /home/michal/.minecraft/mods
+            modsDir = file("${userHome}/.minecraft/mods")
+        }
+
+        if (!modsDir.exists()) {
+            modsDir.mkdirs()
+        }
+
+        println "[WMAPGEN] -> Čistím staré verzie v ${modsDir.absolutePath}..."
+        // Vymaže staré verzie tohto konkrétneho modu/libky
+        fileTree(modsDir).matching {
+            include "${project.name}-*.jar"
+        }.each { it.delete() }
+
+        println "[WMAPGEN] -> Kopírujem ${jarFile.name} do ${modsDir.absolutePath}..."
+        copy {
+            from jarFile
+            into modsDir
+        }
+        println "[WMAPGEN] -> ÚSPECH: ${jarFile.name} bol úspešne prekopírovaný!"
+    }
+}
+
+// 🔥 JAR-IN-JAR: lib sa už distribuuje zabudovaná v hlavnom mode (-all jar),
+// takže samostatné kopírovanie do mods už nie je potrebné (spôsobovalo by duplicity).
+// Ak by si niekedy potreboval samostatnú lib, task copyToMods tu stále existuje.
+tasks.named('build') {
+    // finalizedBy 'copyToMods'
+}
