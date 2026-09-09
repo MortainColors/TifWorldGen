@@ -90,8 +90,9 @@ public class TifWorldGenLib {
                 "     Debian/Ubuntu: sudo apt install libgdal-java\n" +
                 "     Fedora:        sudo dnf install gdal-java\n" +
                 "  Option B (Arch and others) - download libgdalalljni.so from the GitHub\n" +
-                "  repository (https://github.com/MortainColors/TifWorldGen -> folder\n" +
-                "  tifworldgen-lib/native/Linux/) and drop it into THIS folder.\n" +
+                "  repository root (https://github.com/MortainColors/TifWorldGen -\n" +
+                "  the file libgdalalljni.so is right on the main page) and drop it\n" +
+                "  into THIS folder.\n" +
                 "  Multiple variants can live side by side (libgdalalljni-34.so,\n" +
                 "  libgdalalljni-39.so, ...); the mod automatically picks the one matching\n" +
                 "  your installed system GDAL version.\n");

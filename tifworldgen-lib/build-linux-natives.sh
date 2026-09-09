@@ -45,12 +45,11 @@ find "$BUILD/java" -name "*.java" > "$BUILD/sources.txt"
 # alebo pouzivaju systemove baliky (libgdal-java / gdal-java).
 PROJ="$(dirname "$0")"
 cp "$BUILD/gdal.jar"                      "$PROJ/libs/gdal.jar"
-mkdir -p "$PROJ/native/Linux"
-cp "$BUILD/libgdalalljni.so"              "$PROJ/native/Linux/libgdalalljni.so"
+cp "$BUILD/libgdalalljni.so"              "$PROJ/../libgdalalljni.so"
 
 GAME_NATIVE="${GAME_NATIVE:-$HOME/.minecraft/tifworldgen/native/Linux}"
 mkdir -p "$GAME_NATIVE"
 cp "$BUILD/libgdalalljni.so" "$GAME_NATIVE/libgdalalljni.so"
 
-echo "OK: GDAL $GDAL_VER -> libs/gdal.jar + native/Linux/libgdalalljni.so (repo) + $GAME_NATIVE"
+echo "OK: GDAL $GDAL_VER -> libs/gdal.jar + libgdalalljni.so (repo koren) + $GAME_NATIVE"
 echo "Nezabudni commitnut+pushnut zmeny (useri stahuju .so z GitHubu) a rebuildnut mod."

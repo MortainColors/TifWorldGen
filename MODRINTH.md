@@ -102,7 +102,7 @@ Built and tested on a full real-world dataset: the entire **Slovakia DMR** terra
 
 ### 🐧 Linux
 1. Install your distribution's GDAL package:
-   - Arch: `sudo pacman -S gdal` *(then download `libgdalalljni.so` from [GitHub](https://github.com/MortainColors/TifWorldGen) – folder `tifworldgen-lib/native/Linux/` – into `.minecraft/tifworldgen/native/Linux/`)*
+   - Arch: `sudo pacman -S gdal` *(then download `libgdalalljni.so` from the [GitHub repository root](https://github.com/MortainColors/TifWorldGen) into `.minecraft/tifworldgen/native/Linux/`)*
    - Debian/Ubuntu: `sudo apt install gdal-bin` *(+ `libgdal-java` if the version differs)*
    - Fedora: `sudo dnf install gdal` *(+ `gdal-java` if the version differs)*
 2. A README is generated in `.minecraft/tifworldgen/native/Linux/` explaining all options
