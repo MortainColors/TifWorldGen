@@ -66,6 +66,36 @@ jar {
     }
 }
 
+// CurseForge zamietal .so súbory v jare. Tento variant je identický s 'jar',
+// ale neobsahuje natívne knižnice - Linux useri ich vedia získať zo systémových
+// balíkov (libgdal-java / gdal-java) alebo z GitHub repozitára (native/Linux).
+tasks.register('cfJar', Jar) {
+    group = 'build'
+    description = 'Jar pre CurseForge - bez natívnych .so knižníc.'
+    archiveClassifier = 'cf'
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    from sourceSets.main.output
+    exclude 'native/**'
+
+    if (file('libs/gdal.jar').exists()) {
+        from(zipTree(file('libs/gdal.jar'))) {
+            include '**/*.class'
+            exclude 'META-INF/**'
+            exclude 'module-info.class'
+        }
+    }
+
+    manifest {
+        attributes([
+                'Specification-Title': 'tifworldgenlib',
+                'Implementation-Title': project.name,
+                'Implementation-Version': project.version
+        ])
+    }
+}
+
 // 🔥 AUTOMATICKÉ KOPÍROVANIE VYBUILDOVANEJ KNIŽNICE DO .minecraft/mods
 tasks.register('copyToMods') {
     group = 'build'
