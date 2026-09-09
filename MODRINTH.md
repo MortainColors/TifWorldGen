@@ -102,10 +102,10 @@ Built and tested on a full real-world dataset: the entire **Slovakia DMR** terra
 
 ### 🐧 Linux
 1. Install your distribution's GDAL package:
-   - Arch: `sudo pacman -S gdal` *(bundled JNI bridge then works automatically)*
+   - Arch: `sudo pacman -S gdal` *(then download `libgdalalljni.so` from [GitHub](https://github.com/MortainColors/TifWorldGen) – folder `tifworldgen-lib/native/Linux/` – into `.minecraft/tifworldgen/native/Linux/`)*
    - Debian/Ubuntu: `sudo apt install gdal-bin` *(+ `libgdal-java` if the version differs)*
    - Fedora: `sudo dnf install gdal` *(+ `gdal-java` if the version differs)*
-2. Nothing else – a README is generated in `.minecraft/tifworldgen/native/Linux/` explaining all options
+2. A README is generated in `.minecraft/tifworldgen/native/Linux/` explaining all options
 
 **4.** Create a new world → world type **“Tif World Map”** → press **O** to import your maps
 

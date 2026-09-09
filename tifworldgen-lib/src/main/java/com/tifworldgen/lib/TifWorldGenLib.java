@@ -82,19 +82,19 @@ public class TifWorldGenLib {
                 "   Arch:          sudo pacman -S gdal\n" +
                 "   Debian/Ubuntu: sudo apt install gdal-bin\n" +
                 "   Fedora:        sudo dnf install gdal\n\n" +
-                "The mod ships with a bundled libgdalalljni.so (built against GDAL 3.13.x).\n" +
-                "If it matches your system GDAL version, it is extracted and used\n" +
-                "automatically - nothing else to do. A copy appears in this folder as\n" +
-                "libgdalalljni-bundled.so after the first launch.\n\n" +
-                "If your system GDAL is a different version:\n" +
+                "The JNI bridge (libgdalalljni.so, built against GDAL 3.13.x) is NOT\n" +
+                "bundled inside the mod jar - platform rules forbid shipping native\n" +
+                "binaries. Get it one of these ways:\n\n" +
                 "  Option A (Debian/Ubuntu/Fedora) - install your distribution's Java\n" +
-                "  bindings instead (nothing goes into this folder):\n" +
+                "  bindings (nothing goes into this folder):\n" +
                 "     Debian/Ubuntu: sudo apt install libgdal-java\n" +
                 "     Fedora:        sudo dnf install gdal-java\n" +
-                "  Option B (Arch and others) - put a libgdalalljni.so built against your\n" +
-                "  installed GDAL into this folder. Multiple variants can live side by side\n" +
-                "  (libgdalalljni-34.so, libgdalalljni-39.so, ...); the mod automatically picks\n" +
-                "  the one matching your installed system GDAL version.\n");
+                "  Option B (Arch and others) - download libgdalalljni.so from the GitHub\n" +
+                "  repository (https://github.com/MortainColors/TifWorldGen -> folder\n" +
+                "  tifworldgen-lib/native/Linux/) and drop it into THIS folder.\n" +
+                "  Multiple variants can live side by side (libgdalalljni-34.so,\n" +
+                "  libgdalalljni-39.so, ...); the mod automatically picks the one matching\n" +
+                "  your installed system GDAL version.\n");
     }
 
     private static void writeInfoFile(File target, String content) {

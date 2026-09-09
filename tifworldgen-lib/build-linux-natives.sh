@@ -40,14 +40,17 @@ find "$BUILD/java" -name "*.java" > "$BUILD/sources.txt"
 "$JH/bin/javac" -nowarn --release 17 -d "$BUILD/classes" @"$BUILD/sources.txt"
 "$JH/bin/jar" cf "$BUILD/gdal.jar" -C "$BUILD/classes" org
 
-# 4. Nainstalovat do projektu a do herneho priecinka (tifworldgen/native/Linux)
+# 4. Nainstalovat do projektu (viditelne v repo pre stiahnutie usermi) a do herneho priecinka
+# Pozor: .so sa uz NEbali do jara (CurseForge zakaz) - useri si ho stahuju odtialto z GitHubu
+# alebo pouzivaju systemove baliky (libgdal-java / gdal-java).
 PROJ="$(dirname "$0")"
 cp "$BUILD/gdal.jar"                      "$PROJ/libs/gdal.jar"
-cp "$BUILD/libgdalalljni.so"              "$PROJ/src/main/resources/native/libgdalalljni.so"
+mkdir -p "$PROJ/native/Linux"
+cp "$BUILD/libgdalalljni.so"              "$PROJ/native/Linux/libgdalalljni.so"
 
 GAME_NATIVE="${GAME_NATIVE:-$HOME/.minecraft/tifworldgen/native/Linux}"
 mkdir -p "$GAME_NATIVE"
 cp "$BUILD/libgdalalljni.so" "$GAME_NATIVE/libgdalalljni.so"
 
-echo "OK: GDAL $GDAL_VER -> libs/gdal.jar + resources/native/libgdalalljni.so + $GAME_NATIVE"
-echo "Nezabudni rebuildnut mod a vymazat stare svety (chunky su cachovane)."
+echo "OK: GDAL $GDAL_VER -> libs/gdal.jar + native/Linux/libgdalalljni.so (repo) + $GAME_NATIVE"
+echo "Nezabudni commitnut+pushnut zmeny (useri stahuju .so z GitHubu) a rebuildnut mod."
