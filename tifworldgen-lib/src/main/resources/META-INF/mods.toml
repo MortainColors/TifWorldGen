@@ -1,5 +1,5 @@
 modLoader="javafml"
-loaderVersion="[47,)"
+loaderVersion="${loader_version_range}"
 license="All rights reserved"
 
 [[mods]]
@@ -9,9 +9,9 @@ displayName="TifWorldGenerationLibrary"
 logoFile="logo.png"
 authors="Modulak"
 description='''
-TifWorldGenerationLibrary is the core geospatial abstraction layer powering the TifWorldGen ecosystem. By integrating native GDAL (Geospatial Data Abstraction Library) pipelines, it enables high-performance parsing, scaling, and manipulation of custom GIS TIFF maps and multi-layered raster datasets.
+Backend library for TifWorldGen. It bundles the GDAL file-reading library so the main mod can open the local GeoTIFF map files that the player selects in the in-game config screen.
 
-As a dedicated backend framework, this mod mainly provides gdal library for correct Tif. file reading.
+This library collects no data and performs no network communication - it only reads map files chosen by the player, fully offline.
 '''
 
 # Toto je kľúčové pre JarInJar:

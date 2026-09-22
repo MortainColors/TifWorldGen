@@ -4,7 +4,7 @@
 > 1. Sekcia **PROJECT INFO** = hodnoty pre formuláre (nelepiť nikam ako text)
 > 2. Sekcia **DESCRIPTION** = skopíruj DOCELA (od `# TifWorldGen` po koniec) do Description poľa cez `</>` source mód
 > 3. **Obrázky**: najprv uploadni do Galerie projektu (Edit → Gallery), potom na každý obrázok klikni pravým → *Copy image address* → nahrad ním `SEM_URL_OBRAZKA_X` v popise
-> 4. **Donate odkazy**: nahrad `SEM_KOFI_URL` / `SEM_PATREON_URL` svojimi stránkami (ak ešte nemáš, badge riadok s donate časťou vymaž)
+> 4. **Donate odkazy**: už vyplnené (Ko-fi: ko-fi.com/modulak, Patreon: patreon.com/c/Modulak)
 > 5. Banner 1600×400 px odporúčam spraviť (napr. z rozrezaného screenshotu + logo)
 
 ---
@@ -54,18 +54,22 @@
 [![Modrinth Downloads](https://img.shields.io/modrinth/dt/tifworldgen?label=Downloads&logo=modrinth)](https://modrinth.com/mod/tifworldgen)
 [![Modrinth Game Versions](https://img.shields.io/modrinth/game-versions/tifworldgen?logo=modrinth)](https://modrinth.com/mod/tifworldgen)
 [![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-informational)](https://modrinth.com/mod/tifworldgen)
-[![Ko-fi](https://img.shields.io/badge/☕-Buy%20me%20a%20coffee-F16061?logo=ko-fi)](SEM_KOFI_URL)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-F16061?logo=ko-fi)](https://ko-fi.com/modulak)
 [![Patreon](https://img.shields.io/badge/-Become%20a%20patron-FF424D?logo=patreon)](SEM_PATREON_URL)
 
 </div>
 
 ---
 
-TifWorldGen replaces vanilla world generation with **your own GIS data**. Feed it a heightmap of your country, region or city and it builds a 1:1 Minecraft world – hills, valleys, rivers, lakes and real forest coverage – powered by the industry-standard **GDAL** geospatial library.
+TifWorldGen replaces vanilla world generation with **your own GIS data**. Feed it a heightmap of your country, region or city and it builds a 1:1 Minecraft world – hills, valleys, rivers, lakes and real forest coverage – powered by the industry-standard **GDAL** library (a fully offline GeoTIFF file reader).
 
 Built and tested on a full real-world dataset: the entire **Slovakia DMR** terrain model (73,000 × 48,000 blocks, 14 GB GeoTIFF).
 
 ![Real terrain with rivers](SEM_URL_OBRAZKA_1)
+
+## 🔒 Privacy
+
+TifWorldGen collects **nothing** – no telemetry, no analytics, no network access of any kind. It only reads the map files (GeoTIFF heightmaps/water/forest masks) that **you** select yourself in the in-game config screen, and it works fully offline. "GIS" in this description refers only to those local input map files.
 
 ## ✨ Features
 
@@ -93,7 +97,7 @@ Built and tested on a full real-world dataset: the entire **Slovakia DMR** terra
 | [Distant Horizons](https://modrinth.com/mod/distanthorizons) | 🔵 Optional | LOD pregeneration |
 | [Snow! Real Magic](https://modrinth.com/mod/snow-real-magic) | 🔵 Optional | nicer snow stacking |
 
-**3. GDAL native libraries** (the geospatial engine – pick your platform):
+**3. GDAL native libraries** (the offline GeoTIFF map-file reader – pick your platform):
 
 ### 🪟 Windows
 1. Install the [Microsoft Visual C++ Redistributable 2015–2022 (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe)
@@ -102,10 +106,12 @@ Built and tested on a full real-world dataset: the entire **Slovakia DMR** terra
 
 ### 🐧 Linux
 1. Install your distribution's GDAL package:
-   - Arch: `sudo pacman -S gdal` *(then download `libgdalalljni.so` from the [GitHub repository root](https://github.com/MortainColors/TifWorldGen) into `.minecraft/tifworldgen/native/Linux/`)*
    - Debian/Ubuntu: `sudo apt install gdal-bin` *(+ `libgdal-java` if the version differs)*
    - Fedora: `sudo dnf install gdal` *(+ `gdal-java` if the version differs)*
-2. A README is generated in `.minecraft/tifworldgen/native/Linux/` explaining all options
+   - Arch: `sudo pacman -S gdal`
+2. **If your distribution doesn't provide GDAL Java bindings** (e.g. Arch): download [`libgdalalljni.so`](https://github.com/MortainColors/TifWorldGen/raw/main/libgdalalljni.so) (from the [GitHub repository](https://github.com/MortainColors/TifWorldGen) root) and drop it into `.minecraft/tifworldgen/native/Linux/`
+   *(Note: this build matches GDAL 3.13.x / `libgdal.so.39` – on other distros, prefer your distribution's `libgdal-java` / `gdal-java` package, which always matches your GDAL version.)*
+3. A README with all options is generated in `.minecraft/tifworldgen/native/Linux/` on first launch
 
 **4.** Create a new world → world type **“Tif World Map”** → press **O** to import your maps
 
@@ -132,7 +138,7 @@ Built on [GDAL](https://gdal.org) · [Distant Horizons](https://modrinth.com/mod
 
 If you enjoy the mod, consider supporting development:
 
-[![Ko-fi](https://img.shields.io/badge/☕-Ko--fi-F16061?logo=ko-fi)](SEM_KOFI_URL) [![Patreon](https://img.shields.io/badge/-Patreon-FF424D?logo=patreon)](SEM_PATREON_URL)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20me%20on%20Ko--fi-F16061?style=for-the-badge&logo=ko-fi)](https://ko-fi.com/modulak) [![Patreon](https://img.shields.io/badge/Patreon-Become%20a%20patron-FF424D?style=for-the-badge&logo=patreon)](https://www.patreon.com/c/Modulak)
 
 ## 📄 License
 

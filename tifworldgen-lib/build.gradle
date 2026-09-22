@@ -34,7 +34,10 @@ dependencies {
 
 // Expanzia ${mod_version} tokenu v mods.toml (rovnako ako v hlavnom mode)
 tasks.named('processResources', ProcessResources).configure {
-    var replaceProperties = [mod_version: mod_version]
+    var replaceProperties = [
+            loader_version_range: loader_version_range,
+            mod_version: mod_version
+    ]
     inputs.properties replaceProperties
 
     filesMatching(['META-INF/mods.toml']) {

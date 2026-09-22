@@ -8,13 +8,15 @@ version="${mod_version}"
 displayName="TifWorldGeneration"
 logoFile="logo.png"
 authors="Modulak"
-credits="Massive thanks to the GDAL community for foundational geospatial libraries, to Distant Horizons for drastically elevating the player experience with long-range rendering, and to the creators of Serene Seasons, Snow! Real Magic!, and other ecosystem mods for enriching the overall gameplay immersion."
+credits="Massive thanks to the GDAL community for their file-reading library, to Distant Horizons for drastically elevating the player experience with long-range rendering, and to the creators of Serene Seasons, Snow! Real Magic!, and other ecosystem mods for enriching the overall gameplay immersion."
 displayURL="https://github.com/MortainColors" # Tu môžeš neskôr hodiť reálny odkaz
 #updateJSONURL="https://example.com/update.json"
 description='''
-TifWorldGen is an advanced world generation system designed to build high-fidelity Minecraft terrain directly from custom GIS TIFF maps. By seamlessly processing heightmaps, water levels, forest layers and more, it transforms raw data into organic landscapes.
+TifWorldGen builds high-fidelity Minecraft terrain from local GeoTIFF map files that the player selects in the in-game config screen - heightmaps, water masks and forest maps of any real-world region.
 
-Featuring a dynamic, altitude-based freeze line fully synchronized with Serene Seasons, optimized layer stacking via Snow! Real Magic!, and a built-in generation engine that directly injects Level-of-Detail (LOD) chunks into Distant Horizons, this mod delivers an unparalleled seasonal, climate-driven, and long-range visual simulation across a highly modular pipeline.
+It works fully offline: no telemetry, no analytics and no network communication of any kind. The mod only reads the map files chosen by the player - nothing is collected and nothing leaves the player's computer.
+
+Featuring a dynamic, altitude-based freeze line synchronized with Serene Seasons, optimized layer stacking via Snow! Real Magic!, and a built-in engine that injects Level-of-Detail (LOD) chunks into Distant Horizons.
 '''
 
 [[dependencies.tifworldgen]]
