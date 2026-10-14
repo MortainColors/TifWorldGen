@@ -51,7 +51,7 @@ public class TifWorldGenMod {
                 try {
                     generator.close();
                 } catch (Exception e) {
-                    LOGGER.warn("WMAPGEN: Failed to close GDAL datasets for a level", e);
+                    LOGGER.warn("WMAPGEN: Failed to close map readers for a level", e);
                 }
             }
         }

@@ -91,21 +91,22 @@ dependencies {
     // 🔥 JAR-IN-JAR: lib sa pribalí dovnútra finálneho jaru (user stiahne jeden súbor)
     // 'ranged' definuje platný Maven range (vyžaduje to validácia v ForgeGradle),
     // 'pin' udáva presnú verziu pre metadáta.
-    // transitive=false: lib je self-contained (GDAL má vnútri), nechceme ťahať celé MC prostredie
+    // transitive=false: lib je self-contained, nechceme ťahať celé MC prostredie
     jarJar(project(':tifworldgen-lib')) {
         transitive = false
         jarJar.ranged(it, "[${mod_version}]")
         jarJar.pin(it, "${mod_version}")
     }
 
-    // GDAL knižnica pre runtime
-    implementation name: 'gdal'
-
     // 🔥 MÓDY A API KNIŽNICE ZO ZLOŽKY tifworldgen-lib/libs/
     compileOnly fg.deobf(files("../tifworldgen-lib/libs/SereneSeasons-forge-1.20.1-9.1.0.2.jar"))
     compileOnly fg.deobf(files("../tifworldgen-lib/libs/GlitchCore-forge-1.20.1-0.0.1.1.jar"))
     compileOnly fg.deobf(files("../tifworldgen-lib/libs/DistantHorizons-2.4.5-b-1.20.1-fabric-forge.jar"))
     compileOnly fg.deobf(files("../tifworldgen-lib/libs/DistantHorizonsApi-5.1.0.jar"))
+
+    // Pre dev server testy: Serene Seasons je povinná dependency modu
+    runtimeOnly fg.deobf(files("../tifworldgen-lib/libs/SereneSeasons-forge-1.20.1-9.1.0.2.jar"))
+    runtimeOnly fg.deobf(files("../tifworldgen-lib/libs/GlitchCore-forge-1.20.1-0.0.1.1.jar"))
 }
 
 tasks.named('processResources', ProcessResources).configure {

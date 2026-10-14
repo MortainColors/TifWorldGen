@@ -23,9 +23,6 @@ repositories {
 dependencies {
     minecraft 'net.minecraftforge:forge:1.20.1-47.4.10'
 
-    // GDAL knižnica zo zložky libs
-    api name: 'gdal'
-
     compileOnly name: 'DistantHorizons-2.4.5-b-1.20.1-fabric-forge'
     compileOnly name: 'SereneSeasons-forge-1.20.1-9.1.0.2'
     compileOnly files('libs/DistantHorizonsAPI-5.1.0.jar')
@@ -48,17 +45,7 @@ tasks.named('processResources', ProcessResources).configure {
 jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-    // 1. Vloží výstup kompilácie + všetky resources (vrátane src/main/resources/native/*)
     from sourceSets.main.output
-
-    // 2. Rozbalí libs/gdal.jar a vkladá jeho Java triedy priamo do knižnice (ak existuje)
-    if (file('libs/gdal.jar').exists()) {
-        from(zipTree(file('libs/gdal.jar'))) {
-            include '**/*.class'
-            exclude 'META-INF/**'
-            exclude 'module-info.class'
-        }
-    }
 
     manifest {
         attributes([

@@ -688,7 +688,7 @@ public class TifWorldConfigScreen extends Screen {
 
                 Minecraft.getInstance().execute(() -> {
                     if (result != null) {
-                        targetBox.setValue(new java.io.File(result).getAbsolutePath());
+                        targetBox.setValue(relativizeIfInGameDir(new java.io.File(result).getAbsolutePath()));
                     }
 
                     org.lwjgl.glfw.GLFW.glfwFocusWindow(windowHandle);
@@ -713,6 +713,19 @@ public class TifWorldConfigScreen extends Screen {
                 e.printStackTrace();
             }
         });
+    }
+
+    private static String relativizeIfInGameDir(String absolutePath) {
+        try {
+            java.nio.file.Path gameDir = net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get().toAbsolutePath().normalize();
+            java.nio.file.Path file = java.nio.file.Path.of(absolutePath).toAbsolutePath().normalize();
+            if (file.startsWith(gameDir)) {
+                String rel = gameDir.relativize(file).toString().replace(java.io.File.separatorChar, '/');
+                return rel;
+            }
+        } catch (Exception ignored) {
+        }
+        return absolutePath;
     }
 
     @Override public void onClose() { if (this.minecraft != null) this.minecraft.setScreen(this.lastScreen); }

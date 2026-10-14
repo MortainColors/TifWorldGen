@@ -1,29 +1,24 @@
 package com.example.tifworldgen.layers;
 
-import com.example.tifworldgen.layers.utils.LayerSecurity;
-import org.gdal.gdal.Dataset;
-import org.gdal.gdal.Band;
-import org.gdal.gdal.gdal;
-import org.gdal.gdalconst.gdalconst;
-
+import com.tifworldgen.lib.tiff.GeoTiffReader;
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.io.File;
 
 public class WaterLayer implements AutoCloseable {
 
-    private volatile Dataset dataset;
-    private volatile Band band;
-    private int tiffWidth;
-    private int tiffHeight;
-    private Double noDataValue;
+    private volatile GeoTiffReader reader;
+    private volatile int tiffWidth;
+    private volatile int tiffHeight;
+    private volatile Double noDataValue;
     private final String absolutePath;
     private final String mapName;
     private static final int REGION_SIZE = 512;
 
     private static class CacheEntry {
         final boolean[][] data;
-        long lastAccessTime;
+        volatile long lastAccessTime;
 
         CacheEntry(boolean[][] data) {
             this.data = data;
@@ -39,29 +34,32 @@ public class WaterLayer implements AutoCloseable {
         this.absolutePath = absolutePath;
 
         if ("White Map".equalsIgnoreCase(mapName) || "Black Map".equalsIgnoreCase(mapName) || "Nothing".equalsIgnoreCase(mapName) || absolutePath == null || absolutePath.isEmpty()) {
-            this.dataset = null;
-            this.band = null;
+            this.reader = null;
             return;
         }
 
-        File tiffFile = new File(absolutePath);
+        File tiffFile = new File(com.tifworldgen.lib.TifWorldGenLib.resolveMapPath(absolutePath));
         if (!tiffFile.exists()) {
-            this.dataset = null;
-            this.band = null;
+            this.reader = null;
             return;
         }
 
-        gdal.AllRegister();
-        this.dataset = gdal.Open(absolutePath, gdalconst.GA_ReadOnly);
-        if (this.dataset == null) return;
+        try {
+            this.reader = GeoTiffReader.open(tiffFile.getAbsolutePath());
+            this.tiffWidth = reader.getWidth();
+            this.tiffHeight = reader.getHeight();
+            this.noDataValue = reader.getNoDataValue();
+        } catch (IOException e) {
+            System.err.println("[WMAPGEN] Nepodarilo sa otvoriť vodnú mapu '" + absolutePath + "': " + e.getMessage());
+            closeQuietly();
+            this.reader = null;
+        }
+    }
 
-        this.band = dataset.GetRasterBand(1);
-        this.tiffWidth = dataset.GetRasterXSize();
-        this.tiffHeight = dataset.GetRasterYSize();
-
-        Double[] noDataArr = new Double[1];
-        band.GetNoDataValue(noDataArr);
-        this.noDataValue = noDataArr[0];
+    private void closeQuietly() {
+        if (reader != null) {
+            try { reader.close(); } catch (IOException ignored) {}
+        }
     }
 
     public boolean isWater(int worldX, int worldZ) {
@@ -69,7 +67,8 @@ public class WaterLayer implements AutoCloseable {
         if ("Black Map".equalsIgnoreCase(this.mapName) || "Nothing".equalsIgnoreCase(this.mapName))
             return false;
 
-        if (!LayerSecurity.isAuthorizedCaller() || this.dataset == null || this.band == null) {
+        GeoTiffReader r = this.reader;
+        if (r == null) {
             return false;
         }
 
@@ -95,9 +94,13 @@ public class WaterLayer implements AutoCloseable {
 
         CacheEntry entry = maskCache.get(cacheKey);
         if (entry == null) {
-            boolean[][] newData = loadWaterRegion(regionX, regionZ);
-            entry = new CacheEntry(newData);
-            maskCache.put(cacheKey, entry);
+            synchronized (this) {
+                entry = maskCache.get(cacheKey);
+                if (entry == null) {
+                    entry = new CacheEntry(loadWaterRegion(regionX, regionZ));
+                    maskCache.put(cacheKey, entry);
+                }
+            }
         } else {
             entry.lastAccessTime = System.currentTimeMillis();
         }
@@ -107,20 +110,21 @@ public class WaterLayer implements AutoCloseable {
 
     private boolean[][] loadWaterRegion(int startX, int startZ) {
         boolean[][] regionMask = new boolean[REGION_SIZE][REGION_SIZE];
+        GeoTiffReader r = this.reader;
+        if (r == null) return regionMask;
+
         int readWidth = Math.min(REGION_SIZE, tiffWidth - startX);
         int readHeight = Math.min(REGION_SIZE, tiffHeight - startZ);
 
         if (readWidth <= 0 || readHeight <= 0) return regionMask;
 
         float[] buffer = new float[readWidth * readHeight];
-        int returnCode;
-
-        synchronized (this) {
-            if (band == null) return regionMask;
-            returnCode = band.ReadRaster(startX, startZ, readWidth, readHeight, buffer);
+        try {
+            r.readRegion(0, startX, startZ, readWidth, readHeight, buffer);
+        } catch (IOException e) {
+            System.err.println("[WMAPGEN] Čítanie regiónu vodnej mapy zlyhalo: " + e.getMessage());
+            return regionMask;
         }
-
-        if (returnCode != gdalconst.CE_None) return regionMask;
 
         for (int z = 0; z < readHeight; z++) {
             for (int x = 0; x < readWidth; x++) {
@@ -142,23 +146,13 @@ public class WaterLayer implements AutoCloseable {
         return this.mapName;
     }
 
-    public void forceClearCache() {
-        maskCache.clear();
-    }
-
     public String getPath() {
         return this.absolutePath;
     }
 
     public synchronized void close() {
-        if (band != null) {
-            band.delete();
-            band = null;
-        }
-        if (dataset != null) {
-            dataset.delete();
-            dataset = null;
-        }
+        closeQuietly();
+        this.reader = null;
         maskCache.clear();
     }
 }

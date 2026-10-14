@@ -61,7 +61,7 @@
 
 ---
 
-TifWorldGen replaces vanilla world generation with **your own GIS data**. Feed it a heightmap of your country, region or city and it builds a 1:1 Minecraft world – hills, valleys, rivers, lakes and real forest coverage – powered by the industry-standard **GDAL** library (a fully offline GeoTIFF file reader).
+TifWorldGen replaces vanilla world generation with **your own GIS data**. Feed it a heightmap of your country, region or city and it builds a 1:1 Minecraft world – hills, valleys, rivers, lakes and real forest coverage – powered by a **built-in pure-Java GeoTIFF engine** (no external libraries, no native code, works on Windows, Linux and macOS).
 
 Built and tested on a full real-world dataset: the entire **Slovakia DMR** terrain model (73,000 × 48,000 blocks, 14 GB GeoTIFF).
 
@@ -97,21 +97,7 @@ TifWorldGen collects **nothing** – no telemetry, no analytics, no network acce
 | [Distant Horizons](https://modrinth.com/mod/distanthorizons) | 🔵 Optional | LOD pregeneration |
 | [Snow! Real Magic](https://modrinth.com/mod/snow-real-magic) | 🔵 Optional | nicer snow stacking |
 
-**3. GDAL native libraries** (the offline GeoTIFF map-file reader – pick your platform):
-
-### 🪟 Windows
-1. Install the [Microsoft Visual C++ Redistributable 2015–2022 (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-2. Download a GDAL x64 build from [GIS Internals](https://gisinternals.com/release.php) (e.g. `release-1929-x64-gdal-3-12-1-mapserver-8-6-0`)
-3. Extract the whole release into `.minecraft/tifworldgen/native/Win/` (must contain `gdal.dll` + `gdalalljni.dll` + ~40 DLLs; subfolders are scanned; a README with instructions is generated there on first launch)
-
-### 🐧 Linux
-1. Install your distribution's GDAL package:
-   - Debian/Ubuntu: `sudo apt install gdal-bin` *(+ `libgdal-java` if the version differs)*
-   - Fedora: `sudo dnf install gdal` *(+ `gdal-java` if the version differs)*
-   - Arch: `sudo pacman -S gdal`
-2. **If your distribution doesn't provide GDAL Java bindings** (e.g. Arch): download [`libgdalalljni.so`](https://github.com/MortainColors/TifWorldGen/raw/main/libgdalalljni.so) (from the [GitHub repository](https://github.com/MortainColors/TifWorldGen) root) and drop it into `.minecraft/tifworldgen/native/Linux/`
-   *(Note: this build matches GDAL 3.13.x / `libgdal.so.39` – on other distros, prefer your distribution's `libgdal-java` / `gdal-java` package, which always matches your GDAL version.)*
-3. A README with all options is generated in `.minecraft/tifworldgen/native/Linux/` on first launch
+**3.** That's it – no native libraries, no system packages, nothing else to install. The GeoTIFF reader is built into the mod (pure Java, BigTIFF files over 100 GB supported).
 
 **4.** Create a new world → world type **“Tif World Map”** → press **O** to import your maps
 
@@ -134,7 +120,7 @@ TifWorldGen collects **nothing** – no telemetry, no analytics, no network acce
 
 ## ❤️ Credits & Support
 
-Built on [GDAL](https://gdal.org) · [Distant Horizons](https://modrinth.com/mod/distanthorizons) LOD integration · [Serene Seasons](https://modrinth.com/mod/serene-seasons) compatibility · [Snow! Real Magic](https://modrinth.com/mod/snow-real-magic) · terrain test data: Slovakia DMR.
+[Distant Horizons](https://modrinth.com/mod/distanthorizons) LOD integration · [Serene Seasons](https://modrinth.com/mod/serene-seasons) compatibility · [Snow! Real Magic](https://modrinth.com/mod/snow-real-magic) · terrain test data: Slovakia DMR.
 
 If you enjoy the mod, consider supporting development:
 

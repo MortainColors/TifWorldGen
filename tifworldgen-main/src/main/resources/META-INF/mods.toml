@@ -8,7 +8,7 @@ version="${mod_version}"
 displayName="TifWorldGeneration"
 logoFile="logo.png"
 authors="Modulak"
-credits="Massive thanks to the GDAL community for their file-reading library, to Distant Horizons for drastically elevating the player experience with long-range rendering, and to the creators of Serene Seasons, Snow! Real Magic!, and other ecosystem mods for enriching the overall gameplay immersion."
+credits="Massive thanks to Distant Horizons for drastically elevating the player experience with long-range rendering, and to the creators of Serene Seasons, Snow! Real Magic!, and other ecosystem mods for enriching the overall gameplay immersion."
 displayURL="https://github.com/MortainColors" # Tu môžeš neskôr hodiť reálny odkaz
 #updateJSONURL="https://example.com/update.json"
 description='''
@@ -36,7 +36,7 @@ side="BOTH"
 [[dependencies.tifworldgen]]
 modId="tifworldgenlib"
 mandatory=true
-versionRange="[1.0.0-alpha,)"
+versionRange="[0.1.0-beta1,)"
 ordering="BEFORE"
 side="BOTH"
 

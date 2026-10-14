@@ -1,11 +1,9 @@
 package com.example.tifworldgen.layers.utils;
 
 import com.example.tifworldgen.config.ConfigManager;
-import org.gdal.gdal.Dataset;
-import org.gdal.gdal.Band;
-import org.gdal.gdal.gdal;
-import org.gdal.gdalconst.gdalconst;
+import com.tifworldgen.lib.tiff.GeoTiffReader;
 import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -13,22 +11,21 @@ public class HeightMapReader implements AutoCloseable {
 
     private final String absolutePath;
     private final String mapName;
-    private Dataset dataset;
-    private Band band;
+    private volatile GeoTiffReader reader;
 
-    private int tiffWidth;
-    private int tiffHeight;
-    private Double noDataValue;
+    private volatile int tiffWidth;
+    private volatile int tiffHeight;
+    private volatile Double noDataValue;
 
-    private double dataMin = 0.0;
-    private double dataMax = 1000.0;
+    private volatile double dataMin = 0.0;
+    private volatile double dataMax = 1000.0;
 
     private static final int REGION_SIZE = 512;
     private static final int DEFAULT_RAW = 64;
 
     private static class CacheEntry {
         final int[][] data;
-        long lastAccessTime;
+        volatile long lastAccessTime;
         CacheEntry(int[][] data) {
             this.data = data;
             this.lastAccessTime = System.currentTimeMillis();
@@ -43,55 +40,56 @@ public class HeightMapReader implements AutoCloseable {
         this.absolutePath = absolutePath;
 
         if (absolutePath == null || absolutePath.isEmpty() || "Nothing".equals(mapName)) {
-            this.dataset = null; this.band = null;
+            this.reader = null;
             return;
         }
 
-        File tiffFile = new File(absolutePath);
+        File tiffFile = new File(com.tifworldgen.lib.TifWorldGenLib.resolveMapPath(absolutePath));
         if (!tiffFile.exists()) {
-            this.dataset = null; this.band = null;
+            this.reader = null;
             return;
         }
 
-        this.dataset = gdal.Open(absolutePath, gdalconst.GA_ReadOnly);
-        if (this.dataset != null) {
-            this.tiffWidth = dataset.GetRasterXSize();
-            this.tiffHeight = dataset.GetRasterYSize();
-            this.band = dataset.GetRasterBand(1);
-            Double[] noDataArr = new Double[1];
-            band.GetNoDataValue(noDataArr);
-            this.noDataValue = noDataArr[0];
-
+        try {
+            this.reader = GeoTiffReader.open(tiffFile.getAbsolutePath());
+            this.tiffWidth = reader.getWidth();
+            this.tiffHeight = reader.getHeight();
+            this.noDataValue = reader.getNoDataValue();
             updateDataRange();
+        } catch (IOException e) {
+            System.err.println("[WMAPGEN] Nepodarilo sa otvoriť výškovú mapu '" + absolutePath + "': " + e.getMessage());
+            closeQuietly();
+            this.reader = null;
         }
     }
 
-
-
+    private void closeQuietly() {
+        if (reader != null) {
+            try { reader.close(); } catch (IOException ignored) {}
+        }
+    }
 
     private void updateDataRange() {
         int cfgMin = ConfigManager.configData.terrainBuilder.mapMinHeight;
         int cfgMax = ConfigManager.configData.terrainBuilder.mapMaxHeight;
 
         if (cfgMin == -999999 || cfgMax == -999999) {
-            double[] statMin = new double[1];
-            double[] statMax = new double[1];
-            double[] statMean = new double[1];
-            double[] statStdDev = new double[1];
-
-            int statsResult = band.GetStatistics(true, false, statMin, statMax, statMean, statStdDev);
-
-            if (statsResult == gdalconst.CE_None) {
-                this.dataMin = statMin[0];
-                this.dataMax = statMax[0];
-                System.out.println("[WMAPGEN] Automaticky zistené Min/Max z metadát: " + this.dataMin + " - " + this.dataMax);
-
+            double[] stats = new double[0];
+            try {
+                stats = reader.computeStatistics(8_000_000);
+            } catch (IOException e) {
+                System.err.println("[WMAPGEN] Štatistiky výškovej mapy zlyhali: " + e.getMessage());
+            }
+            if (stats.length == 2 && stats[1] > stats[0]) {
+                this.dataMin = stats[0];
+                this.dataMax = stats[1];
+                System.out.println("[WMAPGEN] Automaticky zistené Min/Max (vzorkovanie): " + this.dataMin + " - " + this.dataMax);
                 ConfigManager.configData.terrainBuilder.mapMinHeight = (int) this.dataMin;
                 ConfigManager.configData.terrainBuilder.mapMaxHeight = (int) this.dataMax;
             } else {
                 this.dataMin = 0.0;
                 this.dataMax = 255.0;
-                System.out.println("[WMAPGEN] Metadáta nenájdené. Predvolený rozsah: 0 - 255");
+                System.out.println("[WMAPGEN] Štatistiky nedostupné. Predvolený rozsah: 0 - 255");
                 ConfigManager.configData.terrainBuilder.mapMinHeight = 0;
                 ConfigManager.configData.terrainBuilder.mapMaxHeight = 255;
             }
@@ -107,7 +105,7 @@ public class HeightMapReader implements AutoCloseable {
     }
 
     public boolean isOutOfBounds(int worldX, int worldZ) {
-        if (this.dataset == null) return true;
+        if (this.reader == null) return true;
         int pixelX = worldX + (this.tiffWidth / 2);
         int pixelZ = worldZ + (this.tiffHeight / 2);
         return pixelX < 0 || pixelX >= this.tiffWidth || pixelZ < 0 || pixelZ >= this.tiffHeight;
@@ -117,7 +115,7 @@ public class HeightMapReader implements AutoCloseable {
     public int getTiffHeight() { return this.tiffHeight; }
 
     public int getHeight(int worldX, int worldZ) {
-        if (this.dataset == null) return ConfigManager.configData.terrainBuilder.minY - 10;
+        if (this.reader == null) return ConfigManager.configData.terrainBuilder.minY - 10;
 
         int pixelX = worldX + (tiffWidth / 2);
         int pixelZ = worldZ + (tiffHeight / 2);
@@ -165,7 +163,8 @@ public class HeightMapReader implements AutoCloseable {
             for (int z = 0; z < REGION_SIZE; z++) { regionData[x][z] = DEFAULT_RAW; }
         }
 
-        if (this.band == null) return regionData;
+        GeoTiffReader r = this.reader;
+        if (r == null) return regionData;
 
         int readWidth = Math.min(REGION_SIZE, tiffWidth - startX);
         int readHeight = Math.min(REGION_SIZE, tiffHeight - startZ);
@@ -173,10 +172,11 @@ public class HeightMapReader implements AutoCloseable {
 
         float[] buffer = new float[readWidth * readHeight];
 
-        synchronized (this) {
-            if (band == null) return regionData;
-            int returnCode = band.ReadRaster(startX, startZ, readWidth, readHeight, buffer);
-            if (returnCode != gdalconst.CE_None) return regionData;
+        try {
+            r.readRegion(0, startX, startZ, readWidth, readHeight, buffer);
+        } catch (IOException e) {
+            System.err.println("[WMAPGEN] Čítanie regiónu výškovej mapy zlyhalo: " + e.getMessage());
+            return regionData;
         }
 
         for (int z = 0; z < readHeight; z++) {
@@ -198,8 +198,8 @@ public class HeightMapReader implements AutoCloseable {
     public String getPath() { return this.absolutePath; }
 
     public synchronized void close() {
-        if (band != null) { band.delete(); band = null; }
-        if (dataset != null) { dataset.delete(); dataset = null; }
+        closeQuietly();
+        this.reader = null;
         globalCache.clear();
     }
 }

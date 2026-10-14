@@ -9,9 +9,9 @@ displayName="TifWorldGenerationLibrary"
 logoFile="logo.png"
 authors="Modulak"
 description='''
-Backend library for TifWorldGen. It bundles the GDAL file-reading library so the main mod can open the local GeoTIFF map files that the player selects in the in-game config screen.
+Backend library for TifWorldGen. Contains a built-in pure-Java GeoTIFF reader (classic TIFF and BigTIFF, stripped and tiled layouts, LZW/Deflate compression) that the main mod uses to open the local map files the player selects in the in-game config screen.
 
-This library collects no data and performs no network communication - it only reads map files chosen by the player, fully offline.
+Fully offline: no telemetry, no analytics and no network communication of any kind - it only reads map files chosen by the player.
 '''
 
 # Toto je kľúčové pre JarInJar:
