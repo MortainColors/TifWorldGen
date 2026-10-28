@@ -4,25 +4,26 @@ import com.example.tifworldgen.layers.utils.HeightMapReader;
 import net.minecraft.world.level.block.Blocks;
 
 public class TerrainLayerGenerator implements LayerGenerator {
-    private final HeightMapReader heightMapReader;
+    private final java.util.function.Supplier<HeightMapReader> readerSupplier;
 
-    public TerrainLayerGenerator(HeightMapReader heightMapReader) {
-        this.heightMapReader = heightMapReader;
+    public TerrainLayerGenerator(java.util.function.Supplier<HeightMapReader> readerSupplier) {
+        this.readerSupplier = readerSupplier;
     }
 
     @Override
     public void processColumn(int worldX, int worldZ, ColumnData columnData) {
-        int h = heightMapReader.getHeight(worldX, worldZ);
+        HeightMapReader heightMapReader = readerSupplier.get();
+        int h = heightMapReader != null ? heightMapReader.getHeight(worldX, worldZ) : 64;
         if (h <= 0) h = 64;
 
         columnData.rawHeight = h;
         columnData.finalHeight = h;
         columnData.waterLevel = h;
 
-        int hL = heightMapReader.getHeight(worldX - 1, worldZ);
-        int hR = heightMapReader.getHeight(worldX + 1, worldZ);
-        int hU = heightMapReader.getHeight(worldX, worldZ - 1);
-        int hD = heightMapReader.getHeight(worldX, worldZ + 1);
+        int hL = heightMapReader != null ? heightMapReader.getHeight(worldX - 1, worldZ) : h;
+        int hR = heightMapReader != null ? heightMapReader.getHeight(worldX + 1, worldZ) : h;
+        int hU = heightMapReader != null ? heightMapReader.getHeight(worldX, worldZ - 1) : h;
+        int hD = heightMapReader != null ? heightMapReader.getHeight(worldX, worldZ + 1) : h;
 
         if (hL <= 0) hL = h; if (hR <= 0) hR = h;
         if (hU <= 0) hU = h; if (hD <= 0) hD = h;

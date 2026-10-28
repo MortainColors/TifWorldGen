@@ -34,9 +34,6 @@ public class TifWorldConfigScreen extends Screen {
     private Button caveToggleBtn;
 
 
-    private EditBox heightNameBox, heightMapBox; Button heightBrowseBtn, heightDeleteBtn;
-    private EditBox forestNameBox, forestMapBox; Button forestBrowseBtn, forestDeleteBtn;
-    private EditBox waterNameBox, waterMapBox; Button waterBrowseBtn, waterDeleteBtn;
     private EditBox slopeBaseThresholdBox, slopeYFactorBox, slopeBlockBox, slopeUnderBlockBox;
     private final List<CustomRowComponents> uiCustomRows = new ArrayList<>();
 
@@ -50,6 +47,28 @@ public class TifWorldConfigScreen extends Screen {
     private EditBox undergroundAvgSurfaceYBox;
 
     private EditBox summerFreezeYBox, winterFreezeYBox, springAutumnFreezeYBox;
+
+    private boolean tab1Compact = false;
+
+    private static class Tab1Entry { net.minecraft.client.gui.components.AbstractWidget widget; int baseY; Tab1Entry(net.minecraft.client.gui.components.AbstractWidget w, int y) { this.widget = w; this.baseY = y; } }
+    private final List<Tab1Entry> tab1Entries = new ArrayList<>();
+    private void reg1(net.minecraft.client.gui.components.AbstractWidget w, int y) { this.tab1Entries.add(new Tab1Entry(w, y)); }
+
+    private String buildFromLabel(String mapName) {
+        int maxW = (this.tab1Compact ? 150 : 190) - 10;
+        String prefix = "Build from: ";
+        String text = prefix + mapName;
+        while (this.font.width(text) > maxW && mapName.length() > 1) {
+            mapName = mapName.substring(0, mapName.length() - 1);
+            text = prefix + mapName + "…";
+        }
+        return text;
+    }
+
+    private void applyBuildFrom(Button b, String mapName) {
+        b.setMessage(Component.literal(this.buildFromLabel(mapName)));
+        b.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Build from: " + mapName)));
+    }
 
     private static class PopupInnerRow {
         Button typeBtn;
@@ -88,32 +107,14 @@ public class TifWorldConfigScreen extends Screen {
         names.add("White Map");
         names.add("Black Map");
 
-        if (ConfigManager.configData.showHeightmap && heightNameBox != null && !heightNameBox.getValue().isEmpty()) {
-            names.add(heightNameBox.getValue());
-        } else if (ConfigManager.configData.showHeightmap && (heightNameBox == null) && !ConfigManager.configData.heightmapName.isEmpty()) {
-            names.add(ConfigManager.configData.heightmapName);
-        }
-
-        if (ConfigManager.configData.showForestmap && forestNameBox != null && !forestNameBox.getValue().isEmpty()) {
-            names.add(forestNameBox.getValue());
-        } else if (ConfigManager.configData.showForestmap && (forestNameBox == null) && !ConfigManager.configData.forestmapName.isEmpty()) {
-            names.add(ConfigManager.configData.forestmapName);
-        }
-
-        if (ConfigManager.configData.showWatermap && waterNameBox != null && !waterNameBox.getValue().isEmpty()) {
-            names.add(waterNameBox.getValue());
-        } else if (ConfigManager.configData.showWatermap && (waterNameBox == null) && !ConfigManager.configData.watermapName.isEmpty()) {
-            names.add(ConfigManager.configData.watermapName);
-        }
-
         if (!uiCustomRows.isEmpty()) {
             for (CustomRowComponents row : uiCustomRows) {
                 if (row.nameBox != null && !row.nameBox.getValue().isEmpty()) {
                     names.add(row.nameBox.getValue());
                 }
             }
-        } else {
-            for (ConfigManager.CustomMap cm : ConfigManager.configData.customMaps) {
+        } else if (ConfigManager.configData.maps != null) {
+            for (ConfigManager.CustomMap cm : ConfigManager.configData.maps) {
                 if (cm.name != null && !cm.name.isEmpty()) names.add(cm.name);
             }
         }
@@ -128,43 +129,13 @@ public class TifWorldConfigScreen extends Screen {
         int boxWidth = this.width - boxX - browseWidth - deleteWidth - 25;
         int browseX = boxX + boxWidth + 5; int deleteX = browseX + browseWidth + 5;
 
-        if (ConfigManager.configData.showHeightmap) {
-            this.heightNameBox = new EditBox(this.font, nameX, dummyY, nameWidth, 20, Component.literal("Heightmap Name"));
-            this.heightNameBox.setValue(ConfigManager.configData.heightmapName);
-            this.heightMapBox = new EditBox(this.font, boxX, dummyY, boxWidth, 20, Component.literal("Heightmap Path"));
-            this.heightMapBox.setMaxLength(512); this.heightMapBox.setValue(ConfigManager.configData.heightmapPath);
-            this.heightBrowseBtn = Button.builder(Component.literal("Browse..."), b -> openFilePicker(this.heightMapBox)).bounds(browseX, dummyY, browseWidth, 20).build();
-            this.heightDeleteBtn = Button.builder(Component.literal("§cX"), b -> { syncCurrentUiToConfig(); ConfigManager.configData.showHeightmap = false; ConfigManager.configData.heightmapPath = ""; this.init(); }).bounds(deleteX, dummyY, deleteWidth, 20).build();
-            dummyY += 25;
-        } else { this.heightNameBox = null; this.heightMapBox = null; }
-
-        if (ConfigManager.configData.showForestmap) {
-            this.forestNameBox = new EditBox(this.font, nameX, dummyY, nameWidth, 20, Component.literal("Forestmap Name"));
-            this.forestNameBox.setValue(ConfigManager.configData.forestmapName);
-            this.forestMapBox = new EditBox(this.font, boxX, dummyY, boxWidth, 20, Component.literal("Forestmap Path"));
-            this.forestMapBox.setMaxLength(512); this.forestMapBox.setValue(ConfigManager.configData.forestmapPath);
-            this.forestBrowseBtn = Button.builder(Component.literal("Browse..."), b -> openFilePicker(this.forestMapBox)).bounds(browseX, dummyY, browseWidth, 20).build();
-            this.forestDeleteBtn = Button.builder(Component.literal("§cX"), b -> { syncCurrentUiToConfig(); ConfigManager.configData.showForestmap = false; ConfigManager.configData.forestmapPath = ""; this.init(); }).bounds(deleteX, dummyY, deleteWidth, 20).build();
-            dummyY += 25;
-        } else { this.forestNameBox = null; this.forestMapBox = null; }
-
-        if (ConfigManager.configData.showWatermap) {
-            this.waterNameBox = new EditBox(this.font, nameX, dummyY, nameWidth, 20, Component.literal("Watermap Name"));
-            this.waterNameBox.setValue(ConfigManager.configData.watermapName);
-            this.waterMapBox = new EditBox(this.font, boxX, dummyY, boxWidth, 20, Component.literal("Watermap Path"));
-            this.waterMapBox.setMaxLength(512); this.waterMapBox.setValue(ConfigManager.configData.watermapPath);
-            this.waterBrowseBtn = Button.builder(Component.literal("Browse..."), b -> openFilePicker(this.waterMapBox)).bounds(browseX, dummyY, browseWidth, 20).build();
-            this.waterDeleteBtn = Button.builder(Component.literal("§cX"), b -> { syncCurrentUiToConfig(); ConfigManager.configData.showWatermap = false; ConfigManager.configData.watermapPath = ""; this.init(); }).bounds(deleteX, dummyY, deleteWidth, 20).build();
-            dummyY += 25;
-        } else { this.waterNameBox = null; this.waterMapBox = null; }
-
         this.uiCustomRows.clear();
-        for (int i = 0; i < ConfigManager.configData.customMaps.size(); i++) {
-            final int index = i; ConfigManager.CustomMap mapData = ConfigManager.configData.customMaps.get(i); CustomRowComponents row = new CustomRowComponents();
+        for (int i = 0; i < ConfigManager.configData.maps.size(); i++) {
+            final int index = i; ConfigManager.CustomMap mapData = ConfigManager.configData.maps.get(i); CustomRowComponents row = new CustomRowComponents();
             row.nameBox = new EditBox(this.font, nameX, dummyY, nameWidth, 20, Component.literal("Map Name")); row.nameBox.setValue(mapData.name);
             row.pathBox = new EditBox(this.font, boxX, dummyY, boxWidth, 20, Component.literal("Map Path")); row.pathBox.setMaxLength(512); row.pathBox.setValue(mapData.path);
             EditBox pBox = row.pathBox; row.browseButton = Button.builder(Component.literal("Browse..."), b -> openFilePicker(pBox)).bounds(browseX, dummyY, browseWidth, 20).build();
-            row.deleteButton = Button.builder(Component.literal("§cX"), b -> { syncCurrentUiToConfig(); ConfigManager.configData.customMaps.remove(index); this.init(); }).bounds(deleteX, dummyY, deleteWidth, 20).build();
+            row.deleteButton = Button.builder(Component.literal("§cX"), b -> { syncCurrentUiToConfig(); ConfigManager.configData.maps.remove(index); this.init(); }).bounds(deleteX, dummyY, deleteWidth, 20).build();
             uiCustomRows.add(row); dummyY += 25;
         }
 
@@ -177,6 +148,7 @@ public class TifWorldConfigScreen extends Screen {
         this.clearWidgets();
         this.uiPopupRows.clear();
         this.uiStructPopupRows.clear();
+        this.tab1Entries.clear();
 
         int buttonWidth = 120;
         int startX = (this.width - (buttonWidth * 3 + 10)) / 2;
@@ -187,68 +159,111 @@ public class TifWorldConfigScreen extends Screen {
         this.tab3Btn = this.addRenderableWidget(Button.builder(Component.literal("3. Custom Studio"), b -> switchTab(2)).bounds(startX + (buttonWidth * 2) + 10, tabY, buttonWidth, 20).build());
 
         if (activeTab == 0) {
-            if (heightNameBox != null) { this.addRenderableWidget(heightNameBox); this.addRenderableWidget(heightMapBox); this.addRenderableWidget(heightBrowseBtn); this.addRenderableWidget(heightDeleteBtn); }
-            if (forestNameBox != null) { this.addRenderableWidget(forestNameBox); this.addRenderableWidget(forestMapBox); this.addRenderableWidget(forestBrowseBtn); this.addRenderableWidget(forestDeleteBtn); }
-            if (waterNameBox != null) { this.addRenderableWidget(waterNameBox); this.addRenderableWidget(waterMapBox); this.addRenderableWidget(waterBrowseBtn); this.addRenderableWidget(waterDeleteBtn); }
             for (CustomRowComponents row : uiCustomRows) { this.addRenderableWidget(row.nameBox); this.addRenderableWidget(row.pathBox); this.addRenderableWidget(row.browseButton); this.addRenderableWidget(row.deleteButton); }
-            this.addButton = this.addRenderableWidget(Button.builder(Component.literal("+ Add New Map Layer"), b -> { syncCurrentUiToConfig(); ConfigManager.configData.customMaps.add(new ConfigManager.CustomMap("Custom Layer", "")); this.init(); }).bounds(this.width / 2 - 75, dummyY, 150, 20).build());
+            this.addButton = this.addRenderableWidget(Button.builder(Component.literal("+ Add Map Layer"), b -> { syncCurrentUiToConfig(); ConfigManager.configData.maps.add(new ConfigManager.CustomMap("Map Layer", "")); this.init(); }).bounds(this.width / 2 - 75, dummyY, 150, 20).build());
         }
 
         if (activeTab == 1 && !isBiomePopupActive && !isStructurePopupActive && !isSlopePopupActive) {
-            this.terrainMapBtn = this.addRenderableWidget(Button.builder(Component.literal("Build from: " + ConfigManager.configData.terrainBuilder.buildFromMap), b -> {
+            this.tab1Compact = this.width < 620;
+            int buildW = this.tab1Compact ? 150 : 190;
+
+            this.terrainMapBtn = this.addRenderableWidget(Button.builder(Component.literal(this.buildFromLabel(ConfigManager.configData.terrainBuilder.buildFromMap)), b -> {
                 List<String> currentMaps = getCurrentlyAvailableMapNames();
                 int nIdx = (currentMaps.indexOf(ConfigManager.configData.terrainBuilder.buildFromMap) + 1) % currentMaps.size();
-                ConfigManager.configData.terrainBuilder.buildFromMap = currentMaps.get(nIdx); b.setMessage(Component.literal("Build from: " + ConfigManager.configData.terrainBuilder.buildFromMap));
-            }).bounds(130, 70, 190, 20).build());
+                ConfigManager.configData.terrainBuilder.buildFromMap = currentMaps.get(nIdx); this.applyBuildFrom(b, ConfigManager.configData.terrainBuilder.buildFromMap);
+            }).bounds(130, 70, buildW, 20).build());
+            this.applyBuildFrom(this.terrainMapBtn, ConfigManager.configData.terrainBuilder.buildFromMap);
+            this.reg1(this.terrainMapBtn, 70);
 
-            this.terrainMinYBox = this.addRenderableWidget(new EditBox(this.font, 325, 70, 35, 20, Component.literal("MinY"))); this.terrainMinYBox.setValue(String.valueOf(ConfigManager.configData.terrainBuilder.minY));
-            this.terrainMaxYBox = this.addRenderableWidget(new EditBox(this.font, 365, 70, 35, 20, Component.literal("MaxY"))); this.terrainMaxYBox.setValue(String.valueOf(ConfigManager.configData.terrainBuilder.maxY));
-            this.terrainSlopeBtn = this.addRenderableWidget(Button.builder(Component.literal("⚙ Configure Slope"), b -> {
-                this.syncCurrentUiToConfig(); this.isSlopePopupActive = true; this.init();
-            }).bounds(405, 70, 110, 20).build());
+            if (this.tab1Compact) {
+                this.terrainMinYBox = this.addRenderableWidget(new EditBox(this.font, 284, 70, 33, 20, Component.literal("MinY"))); this.reg1(this.terrainMinYBox, 70);
+                this.terrainMaxYBox = this.addRenderableWidget(new EditBox(this.font, 320, 70, 33, 20, Component.literal("MaxY"))); this.reg1(this.terrainMaxYBox, 70);
+                int slopeW = this.width - 367;
+                String slopeFull = "⚙ Configure Slope";
+                String slopeText = this.font.width(slopeFull) + 8 <= slopeW ? slopeFull : "⚙ Slope";
+                this.terrainSlopeBtn = this.addRenderableWidget(Button.builder(Component.literal(slopeText), b -> {
+                    this.syncCurrentUiToConfig(); this.isSlopePopupActive = true; this.init();
+                }).bounds(357, 70, slopeW, 20).build());
+                if (!slopeText.equals(slopeFull)) this.terrainSlopeBtn.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Configure Slope")));
+                this.reg1(this.terrainSlopeBtn, 70);
+            } else {
+                this.terrainMinYBox = this.addRenderableWidget(new EditBox(this.font, 325, 70, 35, 20, Component.literal("MinY"))); this.reg1(this.terrainMinYBox, 70);
+                this.terrainMaxYBox = this.addRenderableWidget(new EditBox(this.font, 365, 70, 35, 20, Component.literal("MaxY"))); this.reg1(this.terrainMaxYBox, 70);
+                this.terrainSlopeBtn = this.addRenderableWidget(Button.builder(Component.literal("⚙ Configure Slope"), b -> {
+                    this.syncCurrentUiToConfig(); this.isSlopePopupActive = true; this.init();
+                }).bounds(405, 70, 110, 20).build());
+                this.reg1(this.terrainSlopeBtn, 70);
+            }
+            this.terrainMinYBox.setValue(String.valueOf(ConfigManager.configData.terrainBuilder.minY));
+            this.terrainMaxYBox.setValue(String.valueOf(ConfigManager.configData.terrainBuilder.maxY));
 
-            this.waterMapBtn = this.addRenderableWidget(Button.builder(Component.literal("Build from: " + ConfigManager.configData.waterBuilder.buildFromMap), b -> {
+            this.waterMapBtn = this.addRenderableWidget(Button.builder(Component.literal(this.buildFromLabel(ConfigManager.configData.waterBuilder.buildFromMap)), b -> {
                 List<String> currentMaps = getCurrentlyAvailableMapNames();
                 int nIdx = (currentMaps.indexOf(ConfigManager.configData.waterBuilder.buildFromMap) + 1) % currentMaps.size();
-                ConfigManager.configData.waterBuilder.buildFromMap = currentMaps.get(nIdx); b.setMessage(Component.literal("Build from: " + ConfigManager.configData.waterBuilder.buildFromMap));
-            }).bounds(130, 95, 190, 20).build());
+                ConfigManager.configData.waterBuilder.buildFromMap = currentMaps.get(nIdx); this.applyBuildFrom(b, ConfigManager.configData.waterBuilder.buildFromMap);
+            }).bounds(130, 95, buildW, 20).build());
+            this.applyBuildFrom(this.waterMapBtn, ConfigManager.configData.waterBuilder.buildFromMap);
+            this.reg1(this.waterMapBtn, 95);
 
-            this.waterSeaLevelBox = this.addRenderableWidget(new EditBox(this.font, 385, 95, 50, 20, Component.literal("SeaLevel"))); this.waterSeaLevelBox.setValue(String.valueOf(ConfigManager.configData.waterBuilder.seaLevel));
+            if (this.tab1Compact) {
+                this.waterSeaLevelBox = this.addRenderableWidget(new EditBox(this.font, 355, 95, 45, 20, Component.literal("SeaLevel"))); this.reg1(this.waterSeaLevelBox, 95);
+            } else {
+                this.waterSeaLevelBox = this.addRenderableWidget(new EditBox(this.font, 385, 95, 50, 20, Component.literal("SeaLevel"))); this.reg1(this.waterSeaLevelBox, 95);
+            }
+            this.waterSeaLevelBox.setValue(String.valueOf(ConfigManager.configData.waterBuilder.seaLevel));
 
-            this.biomeMapBtn = this.addRenderableWidget(Button.builder(Component.literal("Build from: " + ConfigManager.configData.biomeBuilder.buildFromMap), b -> {
+            this.biomeMapBtn = this.addRenderableWidget(Button.builder(Component.literal(this.buildFromLabel(ConfigManager.configData.biomeBuilder.buildFromMap)), b -> {
                 List<String> currentMaps = getCurrentlyAvailableMapNames();
                 int nIdx = (currentMaps.indexOf(ConfigManager.configData.biomeBuilder.buildFromMap) + 1) % currentMaps.size();
-                ConfigManager.configData.biomeBuilder.buildFromMap = currentMaps.get(nIdx); b.setMessage(Component.literal("Build from: " + ConfigManager.configData.biomeBuilder.buildFromMap));
-            }).bounds(130, 120, 190, 20).build());
+                ConfigManager.configData.biomeBuilder.buildFromMap = currentMaps.get(nIdx); this.applyBuildFrom(b, ConfigManager.configData.biomeBuilder.buildFromMap);
+            }).bounds(130, 120, buildW, 20).build());
+            this.applyBuildFrom(this.biomeMapBtn, ConfigManager.configData.biomeBuilder.buildFromMap);
+            this.reg1(this.biomeMapBtn, 120);
 
-            this.biomeConfigureBtn = this.addRenderableWidget(Button.builder(Component.literal("⚙ Configure Matrix & Node Links"), b -> {
+            String matrixFull = "⚙ Configure Matrix & Node Links";
+            String matrixText = this.font.width(matrixFull) + 8 <= (this.tab1Compact ? this.width - 294 : this.width - 340) ? matrixFull : "⚙ Matrix & Nodes";
+            this.biomeConfigureBtn = this.addRenderableWidget(Button.builder(Component.literal(matrixText), b -> {
                 this.syncCurrentUiToConfig(); this.isBiomePopupActive = true; this.popupScrollAmount = 0; this.init();
-            }).bounds(325, 120, this.width - 325 - 15, 20).build());
+            }).bounds(this.tab1Compact ? 284 : 325, 120, this.tab1Compact ? this.width - 294 : this.width - 340, 20).build());
+            if (!matrixText.equals(matrixFull)) this.biomeConfigureBtn.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Configure Matrix & Node Links")));
+            this.reg1(this.biomeConfigureBtn, 120);
 
             String structMap = ConfigManager.configData.structureBuilder != null ? ConfigManager.configData.structureBuilder.buildFromMap : "Nothing";
-            this.structureMapBtn = this.addRenderableWidget(Button.builder(Component.literal("Build from: " + structMap), b -> {
+            this.structureMapBtn = this.addRenderableWidget(Button.builder(Component.literal(this.buildFromLabel(structMap)), b -> {
                 List<String> currentMaps = getCurrentlyAvailableMapNames();
                 String current = ConfigManager.configData.structureBuilder != null ? ConfigManager.configData.structureBuilder.buildFromMap : "Nothing";
                 int nIdx = (currentMaps.indexOf(current) + 1) % currentMaps.size();
                 String nextMap = currentMaps.get(nIdx);
                 if (ConfigManager.configData.structureBuilder != null) ConfigManager.configData.structureBuilder.buildFromMap = nextMap;
-                b.setMessage(Component.literal("Build from: " + nextMap));
-            }).bounds(130, 145, 190, 20).build());
+                this.applyBuildFrom(b, nextMap);
+            }).bounds(130, 145, buildW, 20).build());
+            this.applyBuildFrom(this.structureMapBtn, structMap);
+            this.reg1(this.structureMapBtn, 145);
 
-            this.structConfigureBtn = this.addRenderableWidget(Button.builder(Component.literal("⚙ Configure Hex & Structures"), b -> {
+            String hexFull = "⚙ Configure Hex & Structures";
+            String hexText = this.font.width(hexFull) + 8 <= (this.tab1Compact ? this.width - 294 : this.width - 340) ? hexFull : "⚙ Hex & Structures";
+            this.structConfigureBtn = this.addRenderableWidget(Button.builder(Component.literal(hexText), b -> {
                 this.syncCurrentUiToConfig(); this.isStructurePopupActive = true; this.popupScrollAmount = 0; this.init();
-            }).bounds(325, 145, this.width - 325 - 15, 20).build());
+            }).bounds(this.tab1Compact ? 284 : 325, 145, this.tab1Compact ? this.width - 294 : this.width - 340, 20).build());
+            if (!hexText.equals(hexFull)) this.structConfigureBtn.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Configure Hex & Structures")));
+            this.reg1(this.structConfigureBtn, 145);
 
-            this.undergroundAvgSurfaceYBox = this.addRenderableWidget(new EditBox(this.font, 230, 170, 50, 20, Component.literal("Avg Surface Y")));
+            this.undergroundAvgSurfaceYBox = this.addRenderableWidget(new EditBox(this.font, 230, 170, 50, 20, Component.literal("Avg Surface Y"))); this.reg1(this.undergroundAvgSurfaceYBox, 170);
             if (ConfigManager.configData.undergroundBuilder != null) {
                 this.undergroundAvgSurfaceYBox.setValue(String.valueOf(ConfigManager.configData.undergroundBuilder.averageSurfaceY));
             } else {
                 this.undergroundAvgSurfaceYBox.setValue("1000");
             }
 
-            this.summerFreezeYBox = this.addRenderableWidget(new EditBox(this.font, 210, 220, 45, 20, Component.literal("Summer Y")));
-            this.winterFreezeYBox = this.addRenderableWidget(new EditBox(this.font, 360, 220, 45, 20, Component.literal("Winter Y")));
-            this.springAutumnFreezeYBox = this.addRenderableWidget(new EditBox(this.font, 550, 220, 45, 20, Component.literal("Spring/Autumn Y")));
+            if (this.tab1Compact) {
+                this.summerFreezeYBox = this.addRenderableWidget(new EditBox(this.font, 212, 220, 45, 20, Component.literal("Summer Y"))); this.reg1(this.summerFreezeYBox, 220);
+                this.winterFreezeYBox = this.addRenderableWidget(new EditBox(this.font, 357, 220, 45, 20, Component.literal("Winter Y"))); this.reg1(this.winterFreezeYBox, 220);
+                this.springAutumnFreezeYBox = this.addRenderableWidget(new EditBox(this.font, 146, 242, 45, 20, Component.literal("Spring/Autumn Y"))); this.reg1(this.springAutumnFreezeYBox, 242);
+            } else {
+                this.summerFreezeYBox = this.addRenderableWidget(new EditBox(this.font, 210, 220, 45, 20, Component.literal("Summer Y"))); this.reg1(this.summerFreezeYBox, 220);
+                this.winterFreezeYBox = this.addRenderableWidget(new EditBox(this.font, 360, 220, 45, 20, Component.literal("Winter Y"))); this.reg1(this.winterFreezeYBox, 220);
+                this.springAutumnFreezeYBox = this.addRenderableWidget(new EditBox(this.font, 550, 220, 45, 20, Component.literal("Spring/Autumn Y"))); this.reg1(this.springAutumnFreezeYBox, 220);
+            }
 
             if (ConfigManager.configData.seasonBuilder != null) {
                 this.summerFreezeYBox.setValue(String.valueOf(ConfigManager.configData.seasonBuilder.summerFreezeY));
@@ -263,7 +278,8 @@ public class TifWorldConfigScreen extends Screen {
                     ConfigManager.configData.undergroundBuilder.generateCaves = !ConfigManager.configData.undergroundBuilder.generateCaves;
                     b.setMessage(Component.literal("Cave Generator: " + (ConfigManager.configData.undergroundBuilder.generateCaves ? "§aON" : "§cOFF")));
                 }
-            }).bounds(130, 245, 190, 20).build());
+            }).bounds(130, this.tab1Compact ? 267 : 245, 190, 20).build());
+            this.reg1(this.caveToggleBtn, this.tab1Compact ? 267 : 245);
         }
         if (isBiomePopupActive && activeTab == 1) {
             this.savePresetBtn = this.addRenderableWidget(Button.builder(Component.literal("💾 Create / Save Preset"), b -> { syncCurrentUiToConfig(); exportPresetDialog(false); }).bounds(15, 48, 140, 20).build());
@@ -361,12 +377,9 @@ public class TifWorldConfigScreen extends Screen {
 
     private void syncCurrentUiToConfig() {
         if (activeTab == 0) {
-            if (ConfigManager.configData.showHeightmap && this.heightNameBox != null) { ConfigManager.configData.heightmapName = this.heightNameBox.getValue(); ConfigManager.configData.heightmapPath = this.heightMapBox.getValue(); }
-            if (ConfigManager.configData.showForestmap && this.forestNameBox != null) { ConfigManager.configData.forestmapName = this.forestNameBox.getValue(); ConfigManager.configData.forestmapPath = this.forestMapBox.getValue(); }
-            if (ConfigManager.configData.showWatermap && this.waterNameBox != null) { ConfigManager.configData.watermapName = this.waterNameBox.getValue(); ConfigManager.configData.watermapPath = this.waterMapBox.getValue(); }
             List<ConfigManager.CustomMap> updatedList = new ArrayList<>();
             for (CustomRowComponents row : uiCustomRows) { updatedList.add(new ConfigManager.CustomMap(row.nameBox.getValue(), row.pathBox.getValue())); }
-            ConfigManager.configData.customMaps = updatedList;
+            ConfigManager.configData.maps = updatedList;
         }
 
         if (activeTab == 1 && !isBiomePopupActive && !isStructurePopupActive && this.terrainMinYBox != null) {
@@ -604,50 +617,79 @@ public class TifWorldConfigScreen extends Screen {
 
         guiGraphics.fill(0, panelTop, this.width, panelBottom, 0x99000000);
 
-        int rowCount = activeTab == 0 ? uiCustomRows.size() + 3 : 3;
-        int maxScroll = Math.max(0, 70 + (rowCount * 25) + 55 - (panelBottom - panelTop) + 15);
+        int maxScroll;
+        if (activeTab == 1) {
+            maxScroll = Math.max(0, (this.tab1Compact ? 287 : 265) - (panelBottom - 8));
+        } else {
+            int rowCount = activeTab == 0 ? uiCustomRows.size() + 3 : 3;
+            maxScroll = Math.max(0, 70 + (rowCount * 25) + 55 - (panelBottom - panelTop) + 15);
+        }
         this.scrollAmount = Math.max(0, Math.min(this.scrollAmount, maxScroll));
         int currentY = 70 - (int) scrollAmount;
 
         if (activeTab == 0) {
-            if (heightNameBox != null) { updateRow1(heightNameBox, heightMapBox, heightBrowseBtn, heightDeleteBtn, currentY, panelTop, panelBottom); currentY += 25; }
-            if (forestNameBox != null) { updateRow1(forestNameBox, forestMapBox, forestBrowseBtn, forestDeleteBtn, currentY, panelTop, panelBottom); currentY += 25; }
-            if (waterNameBox != null) { updateRow1(waterNameBox, waterMapBox, waterBrowseBtn, waterDeleteBtn, currentY, panelTop, panelBottom); currentY += 25; }
             for (CustomRowComponents row : uiCustomRows) { updateRow1(row.nameBox, row.pathBox, row.browseButton, row.deleteButton, currentY, panelTop, panelBottom); currentY += 25; }
             if (this.addButton != null) { this.addButton.setY(currentY); this.addButton.visible = currentY >= (panelTop - 5) && currentY <= (panelBottom - 20); }
         }
 
-        if (activeTab == 1) {
-            guiGraphics.drawString(this.font, "🛠 TIF BUILDERS", 15, 56, 0x66AAFF);
-            guiGraphics.drawString(this.font, "🏔 Terrain Builder:", 15, 76, 0xFFFFFF);
-            guiGraphics.drawString(this.font, "§7Min Y", 325, 58, 0xAAAAAA);
-            guiGraphics.drawString(this.font, "§7Max Y", 365, 58, 0xAAAAAA);
-            guiGraphics.drawString(this.font, "§7Slope", 405, 58, 0xAAAAAA);
-            guiGraphics.drawString(this.font, "🌊 Water Builder:", 15, 101, 0xFFFFFF);
-            guiGraphics.drawString(this.font, "Sea Level:", 325, 101, 0xAAAAAA);
-            guiGraphics.drawString(this.font, "🌳 Biome Builder:", 15, 126, 0xFFFFFF);
-            guiGraphics.drawString(this.font, "🏘 Structure Builder:", 15, 151, 0xFFFFFF);
-
-            guiGraphics.drawString(this.font, "🕳 Underground Builder:", 15, 175, 0xFFFFFF);
-            guiGraphics.drawString(this.font, "Avg Surface Y:", 140, 175, 0xAAAAAA);
-
-            int dividerY = 200;
-            guiGraphics.fill(15, dividerY, this.width - 15, dividerY + 1, 0x55FFFFFF);
-            guiGraphics.drawString(this.font, "⚙ SYSTEM MANAGERS", 15, dividerY + 6, 0x66AAFF);
-            guiGraphics.drawString(this.font, "❄ Season Manager:", 15, 225, 0xFFFFFF);
-            guiGraphics.drawString(this.font, "🕳 Cave Generator:", 15, 250, 0xFFFFFF);
-            guiGraphics.drawString(this.font, "Summer Freeze Y:", 115, 225, 0xAAAAAA);
-            guiGraphics.drawString(this.font, "Winter Freeze Y:", 270, 225, 0xAAAAAA);
-            guiGraphics.drawString(this.font, "Spring/Autumn Freeze Y:", 420, 225, 0xAAAAAA);
-        }
-
         guiGraphics.enableScissor(0, panelTop + 2, this.width, panelBottom - 2);
+        if (activeTab == 1) {
+            int oy = -(int) this.scrollAmount;
+            guiGraphics.drawString(this.font, "🛠 TIF BUILDERS", 15, 56 + oy, 0x66AAFF);
+            if (this.tab1Compact) {
+                guiGraphics.drawString(this.font, "§7Min Y", 284, 58 + oy, 0xAAAAAA);
+                guiGraphics.drawString(this.font, "§7Max Y", 320, 58 + oy, 0xAAAAAA);
+                guiGraphics.drawString(this.font, "§7Slope", 357, 58 + oy, 0xAAAAAA);
+            } else {
+                guiGraphics.drawString(this.font, "§7Min Y", 325, 58 + oy, 0xAAAAAA);
+                guiGraphics.drawString(this.font, "§7Max Y", 365, 58 + oy, 0xAAAAAA);
+                guiGraphics.drawString(this.font, "§7Slope", 405, 58 + oy, 0xAAAAAA);
+            }
+            guiGraphics.drawString(this.font, "🏔 Terrain Builder:", 15, 76 + oy, 0xFFFFFF);
+            guiGraphics.drawString(this.font, "🌊 Water Builder:", 15, 101 + oy, 0xFFFFFF);
+            if (this.tab1Compact) {
+                guiGraphics.drawString(this.font, "Sea Level:", 288, 101 + oy, 0xAAAAAA);
+            } else {
+                guiGraphics.drawString(this.font, "Sea Level:", 325, 101 + oy, 0xAAAAAA);
+            }
+            guiGraphics.drawString(this.font, "🌳 Biome Builder:", 15, 126 + oy, 0xFFFFFF);
+            guiGraphics.drawString(this.font, "🏘 Structure Builder:", 15, 151 + oy, 0xFFFFFF);
+            guiGraphics.drawString(this.font, "🕳 Underground Builder:", 15, 175 + oy, 0xFFFFFF);
+            guiGraphics.drawString(this.font, "Avg Surface Y:", 140, 175 + oy, 0xAAAAAA);
+            guiGraphics.fill(15, 200 + oy, this.width - 15, 201 + oy, 0x55FFFFFF);
+            guiGraphics.drawString(this.font, "⚙ SYSTEM MANAGERS", 15, 206 + oy, 0x66AAFF);
+            guiGraphics.drawString(this.font, "❄ Season Manager:", 15, 225 + oy, 0xFFFFFF);
+            if (this.tab1Compact) {
+                guiGraphics.drawString(this.font, "Summer Freeze Y:", 120, 225 + oy, 0xAAAAAA);
+                guiGraphics.drawString(this.font, "Winter Freeze Y:", 265, 225 + oy, 0xAAAAAA);
+                guiGraphics.drawString(this.font, "Spring/Autumn Freeze Y:", 15, 247 + oy, 0xAAAAAA);
+            } else {
+                guiGraphics.drawString(this.font, "Summer Freeze Y:", 115, 225 + oy, 0xAAAAAA);
+                guiGraphics.drawString(this.font, "Winter Freeze Y:", 270, 225 + oy, 0xAAAAAA);
+                guiGraphics.drawString(this.font, "Spring/Autumn Freeze Y:", 420, 225 + oy, 0xAAAAAA);
+            }
+            guiGraphics.drawString(this.font, "🕳 Cave Generator:", 15, (this.tab1Compact ? 272 : 250) + oy, 0xFFFFFF);
+
+            for (Tab1Entry e : this.tab1Entries) {
+                int wy = e.baseY - (int) this.scrollAmount;
+                e.widget.setY(wy);
+                e.widget.visible = wy >= (panelTop - 5) && wy <= (panelBottom - 20);
+            }
+        }
         for (var child : this.children()) { if (child instanceof net.minecraft.client.gui.components.Renderable r && r != tab1Btn && r != tab2Btn && r != tab3Btn && r != doneButton) r.render(guiGraphics, mouseX, mouseY, partialTick); }
         guiGraphics.disableScissor();
 
         guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 5, 0xFFFFFF);
         this.tab1Btn.render(guiGraphics, mouseX, mouseY, partialTick); this.tab2Btn.render(guiGraphics, mouseX, mouseY, partialTick); this.tab3Btn.render(guiGraphics, mouseX, mouseY, partialTick); this.doneButton.render(guiGraphics, mouseX, mouseY, partialTick);
         renderTabContent(guiGraphics);
+        if (this.minecraft != null) {
+            for (var child : this.children()) {
+                if (child instanceof net.minecraft.client.gui.components.AbstractWidget w && w.visible && w.isHovered() && w.getTooltip() != null) {
+                    guiGraphics.renderTooltip(this.font, w.getTooltip().toCharSequence(this.minecraft), mouseX, mouseY);
+                    break;
+                }
+            }
+        }
     }
 
     private void updateRow1(EditBox name, EditBox path, Button b, Button d, int y, int t, int bot) {

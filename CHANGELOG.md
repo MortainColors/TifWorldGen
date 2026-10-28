@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.1.0-beta2 — stability & worldgen fixes
+
+### 🐛 Fixed
+
+- **Worlds now save correctly on disconnect** – map readers were closed before the
+  world finished saving, which could abort the save entirely, or silently complete
+  in-flight chunks as empty "ghost chunks" when leaving during terrain generation.
+  Readers are now released only after the world is fully saved (`ServerStoppedEvent`).
+- **No more ghost chunks** – chunk generation refuses to run without a working
+  heightmap reader: the chunk is left ungenerated and retried later, instead of being
+  saved as empty terrain.
+- **Generation errors can no longer destroy chunks** – every generation step (terrain,
+  biomes, surface, caves, structures, decorations, mob spawning) is guarded: on an
+  unexpected error the chunk keeps safe fallback terrain and the error is logged with
+  the chunk position and a full stack trace (log messages in English).
+- **Color Mapping screen at high GUI scale** – the tab no longer overflows the screen
+  at GUI scale Auto / 4 (small windows). Widgets stay vanilla-sized, long buttons adapt
+  their width, overlong map names are shortened with "…" and show the full name in a
+  tooltip, and the whole tab scrolls when the window is short.
+
+### ✨ Added
+
+- **River and ocean biomes from the water mask** – narrow water areas get a river
+  biome, large lakes get an ocean biome (kelp-friendly). River depth adapts to the
+  width of the water area.
+- **Unified map list (`maps[]`)** – every map is an equal entry in one list; no more
+  "custom vs fixed" split. Old configurations migrate automatically on first start.
+
+### 🔧 Changed
+
+- Map layer generators always read through the current map reader instance (no stale
+  references after a config reload).
+- Slovak in-game log messages with a unified `[TIFWORLDGEN]` prefix.
+- Documentation and in-jar descriptions updated.
+
 ## 0.1.0-beta1 — first public beta
 
 ### ✨ Highlights

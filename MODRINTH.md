@@ -26,7 +26,6 @@
 | Serene Seasons (`serene-seasons`) | Required |
 | GlitchCore (`glitchcore`) | Required |
 | Distant Horizons (`distanthorizons`) | Optional |
-| Snow! Real Magic (`snow-real-magic`) | Optional |
 
 ### Galéria – navrhované obrázky
 
@@ -86,6 +85,8 @@ TifWorldGen collects **nothing** – no telemetry, no analytics, no network acce
 
 ## 📦 Installation
 
+> ℹ️ **This guide applies to the latest version (0.1.0-beta1 and newer).** Older alpha builds required external GDAL libraries – the current version needs nothing extra.
+
 **1.** Install **Forge 47.x** for Minecraft **1.20.1** and drop both jars into `mods/`:
 - `tifworldgen-<version>.jar` + `tifworldgen-lib-<version>.jar`
 
@@ -95,7 +96,6 @@ TifWorldGen collects **nothing** – no telemetry, no analytics, no network acce
 |---|---|---|
 | [Serene Seasons](https://modrinth.com/mod/serene-seasons) (+ GlitchCore) | ✅ Yes | seasonal snow line integration |
 | [Distant Horizons](https://modrinth.com/mod/distanthorizons) | 🔵 Optional | LOD pregeneration |
-| [Snow! Real Magic](https://modrinth.com/mod/snow-real-magic) | 🔵 Optional | nicer snow stacking |
 
 **3.** That's it – no native libraries, no system packages, nothing else to install. The GeoTIFF reader is built into the mod (pure Java, BigTIFF files over 100 GB supported).
 
@@ -120,7 +120,7 @@ TifWorldGen collects **nothing** – no telemetry, no analytics, no network acce
 
 ## ❤️ Credits & Support
 
-[Distant Horizons](https://modrinth.com/mod/distanthorizons) LOD integration · [Serene Seasons](https://modrinth.com/mod/serene-seasons) compatibility · [Snow! Real Magic](https://modrinth.com/mod/snow-real-magic) · terrain test data: Slovakia DMR.
+[Distant Horizons](https://modrinth.com/mod/distanthorizons) LOD integration · [Serene Seasons](https://modrinth.com/mod/serene-seasons) compatibility · terrain test data: Slovakia DMR.
 
 If you enjoy the mod, consider supporting development:
 

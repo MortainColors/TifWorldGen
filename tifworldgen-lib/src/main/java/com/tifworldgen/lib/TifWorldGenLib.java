@@ -11,7 +11,7 @@ public class TifWorldGenLib {
 
     public TifWorldGenLib() {
         bootstrapDirectories(FMLPaths.GAMEDIR.get().toFile());
-        System.out.println("[WMAPGEN-LIB] TifWorldGenLib ready (pure Java GeoTIFF reader, no native libraries).");
+        System.out.println("[TIFWORLDGEN] Knižnica TifWorldGenLib pripravená (vlastný GeoTIFF čítač v čistej Jave, bez natívnych knižníc).");
     }
 
     private static void bootstrapDirectories(File gameDir) {

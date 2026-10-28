@@ -8,7 +8,7 @@ version="${mod_version}"
 displayName="TifWorldGeneration"
 logoFile="logo.png"
 authors="Modulak"
-credits="Massive thanks to Distant Horizons for drastically elevating the player experience with long-range rendering, and to the creators of Serene Seasons, Snow! Real Magic!, and other ecosystem mods for enriching the overall gameplay immersion."
+credits="Massive thanks to Distant Horizons for drastically elevating the player experience with long-range rendering, and to the creators of Serene Seasons and other ecosystem mods for enriching the overall gameplay immersion."
 displayURL="https://github.com/MortainColors" # Tu môžeš neskôr hodiť reálny odkaz
 #updateJSONURL="https://example.com/update.json"
 description='''
@@ -16,7 +16,7 @@ TifWorldGen builds high-fidelity Minecraft terrain from local GeoTIFF map files 
 
 It works fully offline: no telemetry, no analytics and no network communication of any kind. The mod only reads the map files chosen by the player - nothing is collected and nothing leaves the player's computer.
 
-Featuring a dynamic, altitude-based freeze line synchronized with Serene Seasons, optimized layer stacking via Snow! Real Magic!, and a built-in engine that injects Level-of-Detail (LOD) chunks into Distant Horizons.
+Featuring a dynamic, altitude-based freeze line synchronized with Serene Seasons and a built-in engine that injects Level-of-Detail (LOD) chunks into Distant Horizons.
 '''
 
 [[dependencies.tifworldgen]]

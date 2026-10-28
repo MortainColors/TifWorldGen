@@ -78,16 +78,17 @@ public class ConfigManager {
     }
 
     public static class Data {
-        public String heightmapName = "Heightmap TIFF";
-        public String heightmapPath = "";
-        public boolean showHeightmap = true;
-        public String forestmapName = "Forest Layer TIFF";
-        public String forestmapPath = "";
-        public boolean showForestmap = true;
-        public String watermapName = "Water/River TIFF";
-        public String watermapPath = "";
-        public boolean showWatermap = true;
-        public List<CustomMap> customMaps = new ArrayList<>();
+        public String heightmapName;
+        public String heightmapPath;
+        public Boolean showHeightmap;
+        public String forestmapName;
+        public String forestmapPath;
+        public Boolean showForestmap;
+        public String watermapName;
+        public String watermapPath;
+        public Boolean showWatermap;
+        public List<CustomMap> customMaps;
+        public List<CustomMap> maps = new ArrayList<>();
         public TerrainBuilderConfig terrainBuilder = new TerrainBuilderConfig();
         public WaterBuilderConfig waterBuilder = new WaterBuilderConfig();
         public BiomeBuilderConfig biomeBuilder = new BiomeBuilderConfig();
@@ -113,7 +114,7 @@ public class ConfigManager {
         try (FileReader reader = new FileReader(configFile)) {
             configData = GSON.fromJson(reader, Data.class);
             if (configData == null) configData = new Data();
-            if (configData.customMaps == null) configData.customMaps = new ArrayList<>();
+            if (configData.maps == null) configData.maps = new ArrayList<>();
             if (configData.terrainBuilder == null) configData.terrainBuilder = new TerrainBuilderConfig();
             if (configData.waterBuilder == null) configData.waterBuilder = new WaterBuilderConfig();
             if (configData.biomeBuilder == null) configData.biomeBuilder = new BiomeBuilderConfig();
@@ -128,7 +129,60 @@ public class ConfigManager {
             for (BiomeRule rule : configData.biomeBuilder.rules) {
                 if (rule.ruleType == null || rule.ruleType.isEmpty()) rule.ruleType = "MATRIX";
             }
+
+            if (migrateLegacyMaps()) {
+                System.out.println("[TIFWORLDGEN] Config migrovaný na zjednotený zoznam máp (" + configData.maps.size() + " máp).");
+                save();
+            }
         } catch (Exception e) { e.printStackTrace(); }
+    }
+
+    /**
+     * Migrácia starého configu (trojica pevných slotov + customMaps) na jednotný
+     * zoznam maps[]. Vracia true, ak sa niečo zmenilo (a config treba uložiť).
+     * Po migrácii sa staré polia nulujú, aby sa do uloženého JSON už nezapisovali.
+     */
+    private static boolean migrateLegacyMaps() {
+        boolean changed = false;
+
+        if (configData.heightmapName != null || configData.heightmapPath != null
+                || configData.forestmapName != null || configData.forestmapPath != null
+                || configData.watermapName != null || configData.watermapPath != null
+                || (configData.customMaps != null && !configData.customMaps.isEmpty())) {
+            changed = true;
+        }
+
+        absorbLegacyMap(configData.heightmapName, configData.heightmapPath);
+        absorbLegacyMap(configData.forestmapName, configData.forestmapPath);
+        absorbLegacyMap(configData.watermapName, configData.watermapPath);
+        if (configData.customMaps != null) {
+            for (CustomMap cm : configData.customMaps) absorbLegacyMap(cm.name, cm.path);
+        }
+
+        configData.heightmapName = null;
+        configData.heightmapPath = null;
+        configData.showHeightmap = null;
+        configData.forestmapName = null;
+        configData.forestmapPath = null;
+        configData.showForestmap = null;
+        configData.watermapName = null;
+        configData.watermapPath = null;
+        configData.showWatermap = null;
+        configData.customMaps = null;
+
+        return changed;
+    }
+
+    private static void absorbLegacyMap(String name, String path) {
+        if (path == null || path.isEmpty()) return;
+        String mapName = (name == null || name.isEmpty()) ? "Map " + (configData.maps.size() + 1) : name;
+        for (CustomMap m : configData.maps) {
+            if (m.name.equals(mapName)) {
+                m.path = path;
+                return;
+            }
+        }
+        configData.maps.add(new CustomMap(mapName, path));
     }
 
     public static void save() {

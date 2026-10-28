@@ -96,12 +96,36 @@ public class BiomeLayerGenerator {
             return getBiomeHolder(Biomes.OCEAN, vanillaFallback);
         }
 
+        if (waterLayer != null && waterLayer.isWater(blockX, blockZ)) {
+            return getBiomeHolder(isLargeWaterArea(blockX, blockZ) ? Biomes.OCEAN : Biomes.RIVER, vanillaFallback);
+        }
+
         String mapName = ConfigManager.configData.biomeBuilder.buildFromMap;
         if (mapName != null && !mapName.isEmpty() && !"Nothing".equalsIgnoreCase(mapName)) {
             return getProcessedBiome(blockX, blockZ, vanillaFallback);
         }
 
         return vanillaFallback;
+    }
+
+    /**
+     * Rozlíši rieku od jazera: vzorkuje vodnú masku v 8 smeroch vo vzdialenosti
+     * 40 blokov. Ak je voda takmer všade okolo, ide o veľkú vodnú plochu (jazero)
+     * -> ocean biom (kelp, ryby). Úzky vodný pás -> river biom.
+     */
+    private boolean isLargeWaterArea(int blockX, int blockZ) {
+        final int radius = 40;
+        int waterSamples = 0;
+        if (waterLayer.isWater(blockX + radius, blockZ)) waterSamples++;
+        if (waterLayer.isWater(blockX - radius, blockZ)) waterSamples++;
+        if (waterLayer.isWater(blockX, blockZ + radius)) waterSamples++;
+        if (waterLayer.isWater(blockX, blockZ - radius)) waterSamples++;
+        if (waterSamples < 4) return false;
+        if (waterLayer.isWater(blockX + radius, blockZ + radius)) waterSamples++;
+        if (waterLayer.isWater(blockX + radius, blockZ - radius)) waterSamples++;
+        if (waterLayer.isWater(blockX - radius, blockZ + radius)) waterSamples++;
+        if (waterLayer.isWater(blockX - radius, blockZ - radius)) waterSamples++;
+        return waterSamples >= 6;
     }
 
     private Holder<Biome> getProcessedBiome(int blockX, int blockZ, Holder<Biome> vanillaFallback) {

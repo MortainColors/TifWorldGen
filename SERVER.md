@@ -53,26 +53,23 @@ files **on the server machine** (absolute paths):
 
 ```json
 {
-  "heightmapName": "Height Map TIF",
-  "heightmapPath": "/srv/maps/height.tif",
-  "forestmapName": "Forest Layer TIF",
-  "forestmapPath": "/srv/maps/forest.tif",
-  "watermapName": "Water/River TIFF",
-  "watermapPath": "",
-  "customMaps": [
-    { "name": "Water Map", "path": "/srv/maps/water.tif" }
+  "maps": [
+    { "name": "Height", "path": "/srv/maps/height.tif" },
+    { "name": "Forest", "path": "/srv/maps/forest.tif" },
+    { "name": "Water",  "path": "/srv/maps/water.tif" }
   ],
-  "terrainBuilder": { "buildFromMap": "Height Map TIF", "minY": 234, "maxY": 1652, "...": "..." },
-  "waterBuilder":    { "buildFromMap": "Water Map", "seaLevel": 0 },
-  "biomeBuilder":    { "buildFromMap": "Forest Layer TIF", "rules": [] }
+  "terrainBuilder": { "buildFromMap": "Height", "minY": 234, "maxY": 1652 },
+  "waterBuilder":    { "buildFromMap": "Water", "seaLevel": 0 },
+  "biomeBuilder":    { "buildFromMap": "Forest", "rules": [] }
 }
 ```
 
 Tips:
+- All maps live in one `maps` list; builders reference them **by name** (`buildFromMap`).
 - `terrainBuilder.minY` / `maxY` = world height range the map is stretched into.
-- Water goes into `customMaps` and is referenced by name in `waterBuilder.buildFromMap`.
 - Heightmap: Float32 GeoTIFF (BigTIFF supported, tested with 14 GB files).
 - Water mask: Byte GeoTIFF (white >= 128 = water). Forest map: classes 0/1/2 or RGB.
+- Old configs (fixed heightmap/watermap slots + customMaps) are migrated automatically on first load.
 
 ## 3. Admin commands (OP level 2+)
 

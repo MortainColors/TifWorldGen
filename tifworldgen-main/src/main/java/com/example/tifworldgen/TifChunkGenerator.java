@@ -15,6 +15,11 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.NaturalSpawner;
+import net.minecraft.world.level.levelgen.LegacyRandomSource;
+import net.minecraft.world.level.levelgen.RandomSupport;
+import net.minecraft.world.level.levelgen.WorldgenRandom;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.NoiseColumn;
 import net.minecraft.world.level.StructureManager;
@@ -96,7 +101,7 @@ public class TifChunkGenerator extends ChunkGenerator {
         String finalForestPath = resolveMapPath(biomeMapName, fallbackForestFile.getAbsolutePath());
 
         this.heightMapReader = new HeightMapReader(
-                terrainMapName.isEmpty() || "Nothing".equals(terrainMapName) ? ConfigManager.configData.heightmapName : terrainMapName,
+                terrainMapName,
                 finalHeightPath
         );
         this.waterLayer = new WaterLayer(
@@ -104,7 +109,7 @@ public class TifChunkGenerator extends ChunkGenerator {
                 finalWaterPath
         );
         this.forestLayer = new ForestLayer(
-                biomeMapName.isEmpty() || "Nothing".equals(biomeMapName) ? ConfigManager.configData.forestmapName : biomeMapName,
+                biomeMapName,
                 finalForestPath
         );
         syncForestScale();
@@ -124,7 +129,7 @@ public class TifChunkGenerator extends ChunkGenerator {
         this.biomeLayerGenerator = new BiomeLayerGenerator(this.heightMapReader, this.waterLayer, this.forestLayer, this.biomeSource);
 
         this.pipeline = List.of(
-                new TerrainLayerGenerator(this.heightMapReader),
+                new TerrainLayerGenerator(() -> this.heightMapReader),
                 new WaterLayerGenerator(this.waterLayer),
                 new SeaLevelLayerGenerator()
         );
@@ -147,19 +152,11 @@ public class TifChunkGenerator extends ChunkGenerator {
 
     private String resolveMapPath(String mapName, String defaultPath) {
         if (mapName == null || mapName.isEmpty() || "Nothing".equals(mapName)) return "";
-        if (mapName.equals(ConfigManager.configData.heightmapName)) {
-            return ConfigManager.configData.heightmapPath.isEmpty() ? defaultPath : ConfigManager.configData.heightmapPath;
-        }
-        if (mapName.equals(ConfigManager.configData.forestmapName)) {
-            return ConfigManager.configData.forestmapPath.isEmpty() ? defaultPath : ConfigManager.configData.forestmapPath;
-        }
-        if (mapName.equals(ConfigManager.configData.watermapName)) {
-            return ConfigManager.configData.watermapPath.isEmpty() ? defaultPath : ConfigManager.configData.watermapPath;
-        }
-
-        for (ConfigManager.CustomMap cm : ConfigManager.configData.customMaps) {
-            if (mapName.equals(cm.name)) {
-                return cm.path.isEmpty() ? defaultPath : cm.path;
+        if (ConfigManager.configData != null && ConfigManager.configData.maps != null) {
+            for (ConfigManager.CustomMap cm : ConfigManager.configData.maps) {
+                if (mapName.equals(cm.name)) {
+                    return cm.path == null || cm.path.isEmpty() ? defaultPath : cm.path;
+                }
             }
         }
         return defaultPath;
@@ -194,9 +191,20 @@ public class TifChunkGenerator extends ChunkGenerator {
         return data;
     }
 
+    private boolean isHeightDataReady() {
+        return this.heightMapReader != null && this.heightMapReader.isReady();
+    }
+
     @Override
     public CompletableFuture<ChunkAccess> fillFromNoise(Executor executor, Blender blender, RandomState randomState, StructureManager structureManager, ChunkAccess chunk) {
         return CompletableFuture.supplyAsync(() -> {
+            if (!isHeightDataReady()) {
+                maybeUpdateReaders();
+                if (!isHeightDataReady()) {
+                    throw new IllegalStateException("[TIFWORLDGEN] Heightmap reader not ready - chunk " + chunk.getPos() + " left ungenerated for retry");
+                }
+            }
+            try {
             int minX = chunk.getPos().getMinBlockX();
             int minZ = chunk.getPos().getMinBlockZ();
 
@@ -271,12 +279,48 @@ public class TifChunkGenerator extends ChunkGenerator {
             }
 
             return chunk;
+            } catch (Throwable e) {
+                System.err.println("[TIFWORLDGEN] Failed to generate chunk " + chunk.getPos() + " - using flat fallback terrain: " + e);
+                e.printStackTrace();
+                fillFlatFallback(chunk);
+                return chunk;
+            }
         }, executor);
+    }
+
+    private void fillFlatFallback(ChunkAccess chunk) {
+        int minY = getMinY();
+        int top = Math.min(minY + getGenDepth() - 1, minY + 40);
+        BlockState stone = Blocks.STONE.defaultBlockState();
+        LevelChunkSection[] sections = chunk.getSections();
+        for (int secIdx = 0; secIdx < sections.length; secIdx++) {
+            LevelChunkSection section = sections[secIdx];
+            if (section == null) continue;
+            int secMinY = chunk.getSectionYFromSectionIndex(secIdx) << 4;
+            if (secMinY > top) break;
+            for (int y = Math.max(secMinY, minY); y <= Math.min(top, secMinY + 15); y++) {
+                for (int x = 0; x < 16; x++) {
+                    for (int z = 0; z < 16; z++) {
+                        section.setBlockState(x, y & 15, z & 15, stone, false);
+                    }
+                }
+            }
+        }
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 16; z++) {
+                chunk.getOrCreateHeightmapUnprimed(Heightmap.Types.WORLD_SURFACE_WG).update(x, top, z, stone);
+                chunk.getOrCreateHeightmapUnprimed(Heightmap.Types.OCEAN_FLOOR_WG).update(x, top, z, stone);
+            }
+        }
     }
 
     @Override
     public CompletableFuture<ChunkAccess> createBiomes(Executor executor, RandomState randomState, Blender blender, StructureManager structureManager, ChunkAccess chunk) {
         return CompletableFuture.supplyAsync(() -> {
+            if (!isHeightDataReady()) {
+                throw new IllegalStateException("[TIFWORLDGEN] Heightmap reader not ready - biomes for chunk " + chunk.getPos() + " left for retry");
+            }
+            try {
             int minX = chunk.getPos().getMinBlockX();
             int minZ = chunk.getPos().getMinBlockZ();
 
@@ -314,11 +358,18 @@ public class TifChunkGenerator extends ChunkGenerator {
             }, randomState.sampler());
 
             return chunk;
+            } catch (Throwable e) {
+                System.err.println("[TIFWORLDGEN] Failed to assign biomes for chunk " + chunk.getPos() + " - using vanilla biomes: " + e);
+                e.printStackTrace();
+                chunk.fillBiomesFromNoise((bx, by, bz, sampler) -> this.biomeSource.getNoiseBiome(bx, by, bz, sampler), randomState.sampler());
+                return chunk;
+            }
         }, executor);
     }
 
     @Override
     public void buildSurface(WorldGenRegion region, StructureManager structureManager, RandomState randomState, ChunkAccess chunk) {
+        try {
         int minX = chunk.getPos().getMinBlockX();
         int minZ = chunk.getPos().getMinBlockZ();
         int minY = getMinY();
@@ -351,6 +402,28 @@ public class TifChunkGenerator extends ChunkGenerator {
                 int depth = col.isWater ? Mth.clamp(col.waterDepth, 1, 16) : 0;
                 int topSolidY = Math.max(minY, clampedFinal - depth);
 
+                int quartY = Mth.clamp((topSolidY + 2) >> 2, chunk.getMinSection() << 2, ((chunk.getMinSection() + chunk.getSections().length) << 2) - 1);
+                String biomePath = chunk.getNoiseBiome(x >> 2, quartY, z >> 2)
+                        .unwrapKey().map(key -> key.location().getPath()).orElse("");
+
+                BlockState biomeSurface = null;
+                BlockState biomeUnder = null;
+                boolean snowLayer = false;
+                if (biomePath.contains("desert")) {
+                    biomeSurface = Blocks.SAND.defaultBlockState();
+                    biomeUnder = Blocks.SANDSTONE.defaultBlockState();
+                } else if (biomePath.equals("beach") || biomePath.equals("snowy_beach")) {
+                    biomeSurface = Blocks.SAND.defaultBlockState();
+                    biomeUnder = Blocks.SAND.defaultBlockState();
+                } else if (biomePath.startsWith("badlands")) {
+                    biomeSurface = Blocks.TERRACOTTA.defaultBlockState();
+                    biomeUnder = Blocks.TERRACOTTA.defaultBlockState();
+                } else if (biomePath.startsWith("snowy") || biomePath.equals("grove")
+                        || biomePath.equals("frozen_peaks") || biomePath.equals("jagged_peaks")
+                        || biomePath.equals("snowy_slopes")) {
+                    snowLayer = true;
+                }
+
                 pos.set(x, topSolidY, z);
                 BlockState currentState = chunk.getBlockState(pos);
                 if (currentState.is(Blocks.STONE) || currentState.is(Blocks.DEEPSLATE)) {
@@ -378,7 +451,14 @@ public class TifChunkGenerator extends ChunkGenerator {
                         }
                         pos.set(x, topSolidY, z);
                     } else {
-                        chunk.setBlockState(pos, col.surfaceBlock, false);
+                        chunk.setBlockState(pos, biomeSurface != null ? biomeSurface : col.surfaceBlock, false);
+                        if (snowLayer && topSolidY < maxHeight) {
+                            pos.set(x, topSolidY + 1, z);
+                            if (chunk.getBlockState(pos).isAir()) {
+                                chunk.setBlockState(pos, Blocks.SNOW.defaultBlockState(), false);
+                            }
+                            pos.set(x, topSolidY, z);
+                        }
                     }
                 }
 
@@ -388,13 +468,17 @@ public class TifChunkGenerator extends ChunkGenerator {
                         pos.set(x, y, z);
                         BlockState subState = chunk.getBlockState(pos);
                         if (subState.is(Blocks.STONE) || subState.is(Blocks.DEEPSLATE)) {
-                            chunk.setBlockState(pos, col.underBlock, false);
+                            chunk.setBlockState(pos, biomeUnder != null ? biomeUnder : col.underBlock, false);
                         } else {
                             break;
                         }
                     }
                 }
             }
+        }
+        } catch (Exception e) {
+            System.err.println("[TIFWORLDGEN] Failed to build surface for chunk " + chunk.getPos() + " (chunk left as stone): " + e);
+            e.printStackTrace();
         }
     }
 
@@ -404,15 +488,30 @@ public class TifChunkGenerator extends ChunkGenerator {
             if (ConfigManager.configData.undergroundBuilder == null || !ConfigManager.configData.undergroundBuilder.generateCaves) {
                 return;
             }
-            this.undergroundGenerator.generate(chunk, randomState.router(), this, seed, structureManager);
+            try {
+                this.undergroundGenerator.generate(chunk, randomState.router(), this, seed, structureManager);
+            } catch (Exception e) {
+                System.err.println("[TIFWORLDGEN] Failed to carve caves for chunk " + chunk.getPos() + " (caves skipped): " + e);
+                e.printStackTrace();
+            }
         }
     }
 
     @Override
     public void applyBiomeDecoration(WorldGenLevel level, ChunkAccess chunk, StructureManager structureManager) {
         this.worldSeed = level.getSeed();
-        super.applyBiomeDecoration(level, chunk, structureManager);
-        this.undergroundBiomeGenerator.decorateUndergroundBiomes(chunk, this, getMinY(), level.getSeed());
+        try {
+            super.applyBiomeDecoration(level, chunk, structureManager);
+        } catch (Exception e) {
+            System.err.println("[TIFWORLDGEN] Failed to decorate chunk " + chunk.getPos() + " (decorations skipped, chunk kept): " + e);
+            e.printStackTrace();
+        }
+        try {
+            this.undergroundBiomeGenerator.decorateUndergroundBiomes(chunk, this, getMinY(), level.getSeed());
+        } catch (Exception e) {
+            System.err.println("[TIFWORLDGEN] Failed underground biome decoration for chunk " + chunk.getPos() + ": " + e);
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -493,13 +592,30 @@ public class TifChunkGenerator extends ChunkGenerator {
     @Override
     public void createStructures(RegistryAccess registryAccess, ChunkGeneratorStructureState structureState, StructureManager structureManager, ChunkAccess chunk, StructureTemplateManager templateManager) {
         this.worldSeed = structureState.getLevelSeed();
-        super.createStructures(registryAccess, structureState, structureManager, chunk, templateManager);
+        try {
+            super.createStructures(registryAccess, structureState, structureManager, chunk, templateManager);
 
-        this.structureGenerator.filterStructures(chunk);
-        this.undergroundStructureGenerator.filterUndergroundStructures(chunk);
+            this.structureGenerator.filterStructures(chunk);
+            this.undergroundStructureGenerator.filterUndergroundStructures(chunk);
+        } catch (Exception e) {
+            System.err.println("[TIFWORLDGEN] Failed to process structures for chunk " + chunk.getPos() + ": " + e);
+            e.printStackTrace();
+        }
     }
 
-    @Override public void spawnOriginalMobs(WorldGenRegion region) {}
+    @Override
+    public void spawnOriginalMobs(WorldGenRegion region) {
+        try {
+            ChunkPos center = region.getCenter();
+            Holder<Biome> biome = region.getBiome(center.getWorldPosition().atY(region.getMaxBuildHeight() - 1));
+            WorldgenRandom random = new WorldgenRandom(new LegacyRandomSource(RandomSupport.generateUniqueSeed()));
+            random.setDecorationSeed(region.getSeed(), center.getMinBlockX(), center.getMinBlockZ());
+            NaturalSpawner.spawnMobsForChunkGeneration(region, biome, center, random);
+        } catch (Exception e) {
+            System.err.println("[TIFWORLDGEN] Failed to spawn mobs for chunk " + region.getCenter() + ": " + e);
+            e.printStackTrace();
+        }
+    }
     @Override public void addDebugScreenInfo(List<String> list, RandomState randomState, BlockPos pos) {}
 
     public List<LayerGenerator> getPipeline() { return this.pipeline; }
@@ -628,7 +744,7 @@ public class TifChunkGenerator extends ChunkGenerator {
             try {
                 this.forestLayer.close();
                 this.forestLayer = new ForestLayer(
-                        forestMapName.isEmpty() || "Nothing".equals(forestMapName) ? ConfigManager.configData.forestmapName : forestMapName,
+                        forestMapName,
                         newForestPath
                 );
                 syncForestScale();

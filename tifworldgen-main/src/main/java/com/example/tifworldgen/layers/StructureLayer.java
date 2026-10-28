@@ -47,7 +47,7 @@ public class StructureLayer implements AutoCloseable {
             this.tiffWidth = reader.getWidth();
             this.tiffHeight = reader.getHeight();
         } catch (IOException e) {
-            System.err.println("[WMAPGEN] Nepodarilo sa otvoriť štruktúrnu mapu '" + absolutePath + "': " + e.getMessage());
+            System.err.println("[TIFWORLDGEN] Nepodarilo sa otvoriť štruktúrnu mapu '" + absolutePath + "': " + e.getMessage());
             closeQuietly();
             this.reader = null;
         }
@@ -120,7 +120,7 @@ public class StructureLayer implements AutoCloseable {
             try {
                 r.readRegion(b, startX, startZ, readWidth, readHeight, buf[b]);
             } catch (IOException e) {
-                System.err.println("[WMAPGEN] Čítanie regiónu štruktúrnej mapy zlyhalo: " + e.getMessage());
+                System.err.println("[TIFWORLDGEN] Čítanie regiónu štruktúrnej mapy zlyhalo: " + e.getMessage());
                 return regionData;
             }
         }

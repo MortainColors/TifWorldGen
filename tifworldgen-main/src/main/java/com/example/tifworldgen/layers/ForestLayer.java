@@ -58,7 +58,7 @@ public class ForestLayer implements AutoCloseable {
                 this.dataMax = stats[1];
             }
         } catch (IOException e) {
-            System.err.println("[WMAPGEN] Nepodarilo sa otvoriť lesnú mapu '" + absolutePath + "': " + e.getMessage());
+            System.err.println("[TIFWORLDGEN] Nepodarilo sa otvoriť lesnú mapu '" + absolutePath + "': " + e.getMessage());
             closeQuietly();
             this.reader = null;
         }
@@ -163,7 +163,7 @@ public class ForestLayer implements AutoCloseable {
             try {
                 r.readRegion(b, startX, startZ, readWidth, readHeight, buf[b]);
             } catch (IOException e) {
-                System.err.println("[WMAPGEN] Čítanie regiónu lesnej mapy zlyhalo: " + e.getMessage());
+                System.err.println("[TIFWORLDGEN] Čítanie regiónu lesnej mapy zlyhalo: " + e.getMessage());
                 return regionMask;
             }
         }

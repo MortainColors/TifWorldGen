@@ -50,7 +50,7 @@ public class WaterLayer implements AutoCloseable {
             this.tiffHeight = reader.getHeight();
             this.noDataValue = reader.getNoDataValue();
         } catch (IOException e) {
-            System.err.println("[WMAPGEN] Nepodarilo sa otvoriť vodnú mapu '" + absolutePath + "': " + e.getMessage());
+            System.err.println("[TIFWORLDGEN] Nepodarilo sa otvoriť vodnú mapu '" + absolutePath + "': " + e.getMessage());
             closeQuietly();
             this.reader = null;
         }
@@ -122,7 +122,7 @@ public class WaterLayer implements AutoCloseable {
         try {
             r.readRegion(0, startX, startZ, readWidth, readHeight, buffer);
         } catch (IOException e) {
-            System.err.println("[WMAPGEN] Čítanie regiónu vodnej mapy zlyhalo: " + e.getMessage());
+            System.err.println("[TIFWORLDGEN] Čítanie regiónu vodnej mapy zlyhalo: " + e.getMessage());
             return regionMask;
         }
 

@@ -57,7 +57,7 @@ public class HeightMapReader implements AutoCloseable {
             this.noDataValue = reader.getNoDataValue();
             updateDataRange();
         } catch (IOException e) {
-            System.err.println("[WMAPGEN] Nepodarilo sa otvoriť výškovú mapu '" + absolutePath + "': " + e.getMessage());
+            System.err.println("[TIFWORLDGEN] Nepodarilo sa otvoriť výškovú mapu '" + absolutePath + "': " + e.getMessage());
             closeQuietly();
             this.reader = null;
         }
@@ -78,25 +78,25 @@ public class HeightMapReader implements AutoCloseable {
             try {
                 stats = reader.computeStatistics(8_000_000);
             } catch (IOException e) {
-                System.err.println("[WMAPGEN] Štatistiky výškovej mapy zlyhali: " + e.getMessage());
+                System.err.println("[TIFWORLDGEN] Štatistiky výškovej mapy zlyhali: " + e.getMessage());
             }
             if (stats.length == 2 && stats[1] > stats[0]) {
                 this.dataMin = stats[0];
                 this.dataMax = stats[1];
-                System.out.println("[WMAPGEN] Automaticky zistené Min/Max (vzorkovanie): " + this.dataMin + " - " + this.dataMax);
+                System.out.println("[TIFWORLDGEN] Automaticky zistené Min/Max (vzorkovanie): " + this.dataMin + " - " + this.dataMax);
                 ConfigManager.configData.terrainBuilder.mapMinHeight = (int) this.dataMin;
                 ConfigManager.configData.terrainBuilder.mapMaxHeight = (int) this.dataMax;
             } else {
                 this.dataMin = 0.0;
                 this.dataMax = 255.0;
-                System.out.println("[WMAPGEN] Štatistiky nedostupné. Predvolený rozsah: 0 - 255");
+                System.out.println("[TIFWORLDGEN] Štatistiky nedostupné. Predvolený rozsah: 0 - 255");
                 ConfigManager.configData.terrainBuilder.mapMinHeight = 0;
                 ConfigManager.configData.terrainBuilder.mapMaxHeight = 255;
             }
         } else {
             this.dataMin = cfgMin;
             this.dataMax = cfgMax;
-            System.out.println("[WMAPGEN] Používame Min/Max z GUI configu: " + this.dataMin + " - " + this.dataMax);
+            System.out.println("[TIFWORLDGEN] Používame Min/Max z GUI configu: " + this.dataMin + " - " + this.dataMax);
         }
 
         if (this.dataMax <= this.dataMin) {
@@ -175,7 +175,7 @@ public class HeightMapReader implements AutoCloseable {
         try {
             r.readRegion(0, startX, startZ, readWidth, readHeight, buffer);
         } catch (IOException e) {
-            System.err.println("[WMAPGEN] Čítanie regiónu výškovej mapy zlyhalo: " + e.getMessage());
+            System.err.println("[TIFWORLDGEN] Čítanie regiónu výškovej mapy zlyhalo: " + e.getMessage());
             return regionData;
         }
 
@@ -196,6 +196,10 @@ public class HeightMapReader implements AutoCloseable {
     }
 
     public String getPath() { return this.absolutePath; }
+
+    public boolean isReady() {
+        return this.reader != null && this.absolutePath != null && !this.absolutePath.isEmpty();
+    }
 
     public synchronized void close() {
         closeQuietly();

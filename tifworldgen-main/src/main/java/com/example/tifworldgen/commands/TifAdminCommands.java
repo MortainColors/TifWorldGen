@@ -142,7 +142,7 @@ public class TifAdminCommands {
         String path = StringArgumentType.getString(ctx, "path").trim();
         if (ConfigManager.configData == null) return 0;
         boolean exists = new File(path).exists();
-        List<ConfigManager.CustomMap> maps = ConfigManager.configData.customMaps;
+        List<ConfigManager.CustomMap> maps = ConfigManager.configData.maps;
         maps.removeIf(m -> m.name.equals(name));
         maps.add(new ConfigManager.CustomMap(name, path));
         ConfigManager.save();
@@ -158,8 +158,9 @@ public class TifAdminCommands {
     private static int runMapRemove(CommandContext<CommandSourceStack> ctx) {
         String name = StringArgumentType.getString(ctx, "name");
         if (ConfigManager.configData == null) return 0;
-        boolean removed = ConfigManager.configData.customMaps.removeIf(m -> m.name.equals(name));
+        boolean removed = ConfigManager.configData.maps.removeIf(m -> m.name.equals(name));
         ConfigManager.save();
+        applyToGenerators();
         final String n = name;
         final boolean r = removed;
         ctx.getSource().sendSuccess(() -> Component.literal(r
@@ -197,37 +198,32 @@ public class TifAdminCommands {
             ctx.getSource().sendSuccess(() -> Component.literal("§c[tifworldgen] Config not loaded."), false);
             return 0;
         }
-        ctx.getSource().sendSuccess(() -> Component.literal("§b[tifworldgen] Configured maps:"), false);
-        reportMap(ctx, "Terrain", ConfigManager.configData.terrainBuilder.buildFromMap, resolvePath(
-                ConfigManager.configData.heightmapName, ConfigManager.configData.heightmapPath));
-        reportMap(ctx, "Water", ConfigManager.configData.waterBuilder.buildFromMap, resolvePath(
-                ConfigManager.configData.watermapName, ConfigManager.configData.watermapPath));
-        reportMap(ctx, "Biome", ConfigManager.configData.biomeBuilder.buildFromMap, resolvePath(
-                ConfigManager.configData.forestmapName, ConfigManager.configData.forestmapPath));
-        if (ConfigManager.configData.customMaps != null) {
-            for (ConfigManager.CustomMap cm : ConfigManager.configData.customMaps) {
-                reportMap(ctx, cm.name, cm.name, cm.path);
+        ctx.getSource().sendSuccess(() -> Component.literal("§b[tifworldgen] Maps:"), false);
+        if (ConfigManager.configData.maps != null && !ConfigManager.configData.maps.isEmpty()) {
+            for (ConfigManager.CustomMap cm : ConfigManager.configData.maps) {
+                String usage = describeUsage(cm.name);
+                reportMap(ctx, usage, cm.name, cm.path);
             }
+        } else {
+            ctx.getSource().sendSuccess(() -> Component.literal(" §7(no maps configured - use /tifworldgen map add)"), false);
         }
         return 1;
+    }
+
+    private static String describeUsage(String mapName) {
+        StringBuilder sb = new StringBuilder();
+        if (mapName.equals(ConfigManager.configData.terrainBuilder.buildFromMap)) sb.append("terrain ");
+        if (mapName.equals(ConfigManager.configData.waterBuilder.buildFromMap)) sb.append("water ");
+        if (mapName.equals(ConfigManager.configData.biomeBuilder.buildFromMap)) sb.append("biome ");
+        if (ConfigManager.configData.structureBuilder != null && mapName.equals(ConfigManager.configData.structureBuilder.buildFromMap)) sb.append("structure ");
+        return sb.length() == 0 ? "unused" : sb.toString().trim();
     }
 
     private static void reportMap(CommandContext<CommandSourceStack> ctx, String label, String name, String path) {
         String pathToShow = path == null || path.isEmpty() ? "(not set)" : path;
         boolean exists = path != null && !path.isEmpty() && new File(path).exists();
         String state = exists ? "§a[OK]" : "§c[MISSING]";
-        ctx.getSource().sendSuccess(() -> Component.literal(" " + state + " §7" + label + " §f" + name + " §8-> " + pathToShow), false);
-    }
-
-    private static String resolvePath(String name, String configuredPath) {
-        if (configuredPath != null && !configuredPath.isEmpty()) return configuredPath;
-        if (name == null || name.isEmpty() || "Nothing".equals(name)) return "";
-        if (ConfigManager.configData.customMaps != null) {
-            for (ConfigManager.CustomMap cm : ConfigManager.configData.customMaps) {
-                if (name.equals(cm.name)) return cm.path;
-            }
-        }
-        return "";
+        ctx.getSource().sendSuccess(() -> Component.literal(" " + state + " §7[" + label + "] §f" + name + " §8-> " + pathToShow), false);
     }
 
     private static int runInfo(CommandContext<CommandSourceStack> ctx) {
